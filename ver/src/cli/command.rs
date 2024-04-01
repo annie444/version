@@ -17,7 +17,7 @@ const STYLE: Styles = Styles::styled()
     .invalid(AnsiColor::Magenta.on_default());
 
 #[derive(Parser, Debug, Clone)]
-#[command(arg_required_else_help(true), styles = STYLE)]
+#[command(arg_required_else_help(true), styles = STYLE, name = "version")]
 /// A tool for managing the version of a project
 pub struct Cli {
     #[command(subcommand)]

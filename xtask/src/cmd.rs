@@ -52,13 +52,13 @@ pub struct FilesCommand {
 #[command(arg_required_else_help(true))]
 pub enum Files {
     /// Add a file to add the version number
-    Add(TrackFile),
+    Track(TrackFile),
     /// Remove a file from tracking the version number
     Rm(File),
     /// Set the version number from a file
     Update(File),
     /// Update all files
-    UbdateAll,
+    UpdateAll,
 }
 
 #[derive(Args, Debug, Clone)]
@@ -67,7 +67,9 @@ pub struct TrackFile {
     /// The path to the file to track
     #[arg(value_parser = value_parser!(ClioPath).exists().is_file())]
     pub path: ClioPath,
-    /// The regex to match the version number
+    /// The expression to match the version number
+    ///
+    /// This expression should be a regex with a single capture group that matches the version number
     #[arg(value_parser = value_parser!(Regex))]
     pub expr: Regex,
 }

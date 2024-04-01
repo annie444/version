@@ -47,10 +47,10 @@ This document contains the help content for the `version` command-line program.
 * [`version build rm`↴](#version-build-rm)
 * [`version get`↴](#version-get)
 * [`version file`↴](#version-file)
-* [`version file add`↴](#version-file-add)
+* [`version file track`↴](#version-file-track)
 * [`version file rm`↴](#version-file-rm)
 * [`version file update`↴](#version-file-update)
-* [`version file ubdate-all`↴](#version-file-ubdate-all)
+* [`version file update-all`↴](#version-file-update-all)
 
 ## `version`
 
@@ -511,23 +511,23 @@ Track and update the version number in a file
 
 ###### **Subcommands:**
 
-* `add` — Add a file to add the version number
+* `track` — Add a file to add the version number
 * `rm` — Remove a file from tracking the version number
 * `update` — Set the version number from a file
-* `ubdate-all` — Update all files
+* `update-all` — Update all files
 
 
 
-## `version file add`
+## `version file track`
 
 Add a file to add the version number
 
-**Usage:** `version file add <PATH> <EXPR>`
+**Usage:** `version file track <PATH> <EXPR>`
 
 ###### **Arguments:**
 
 * `<PATH>` — The path to the file to track
-* `<EXPR>` — The regex to match the version number
+* `<EXPR>` — The expression to match the version number
 
 
 
@@ -555,11 +555,11 @@ Set the version number from a file
 
 
 
-## `version file ubdate-all`
+## `version file update-all`
 
 Update all files
 
-**Usage:** `version file ubdate-all`
+**Usage:** `version file update-all`
 
 
 

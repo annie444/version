@@ -46,6 +46,11 @@ This document contains the help content for the `version` command-line program.
 * [`version build set`↴](#version-build-set)
 * [`version build rm`↴](#version-build-rm)
 * [`version get`↴](#version-get)
+* [`version file`↴](#version-file)
+* [`version file add`↴](#version-file-add)
+* [`version file rm`↴](#version-file-rm)
+* [`version file update`↴](#version-file-update)
+* [`version file ubdate-all`↴](#version-file-ubdate-all)
 
 ## `version`
 
@@ -63,6 +68,7 @@ A tool for managing the version of a project
 * `rc` — Change the release candidate identifier
 * `build` — Change the build identifier
 * `get` — Get the current version number as a full SemVer string
+* `file` — Track and update the version number in a file
 
 ###### **Arguments:**
 
@@ -494,6 +500,66 @@ Set the build version
 Get the current version number as a full SemVer string
 
 **Usage:** `version get`
+
+
+
+## `version file`
+
+Track and update the version number in a file
+
+**Usage:** `version file <COMMAND>`
+
+###### **Subcommands:**
+
+* `add` — Add a file to add the version number
+* `rm` — Remove a file from tracking the version number
+* `update` — Set the version number from a file
+* `ubdate-all` — Update all files
+
+
+
+## `version file add`
+
+Add a file to add the version number
+
+**Usage:** `version file add <PATH> <EXPR>`
+
+###### **Arguments:**
+
+* `<PATH>` — The path to the file to track
+* `<EXPR>` — The regex to match the version number
+
+
+
+## `version file rm`
+
+Remove a file from tracking the version number
+
+**Usage:** `version file rm <PATH>`
+
+###### **Arguments:**
+
+* `<PATH>` — The path to the file
+
+
+
+## `version file update`
+
+Set the version number from a file
+
+**Usage:** `version file update <PATH>`
+
+###### **Arguments:**
+
+* `<PATH>` — The path to the file
+
+
+
+## `version file ubdate-all`
+
+Update all files
+
+**Usage:** `version file ubdate-all`
 
 
 

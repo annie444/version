@@ -96,6 +96,7 @@ fn dist() -> Result<(), DynError> {
 
     dist_binary(None)?;
     dist_manpage()?;
+    dist_readme()?;
 
     Ok(())
 }
@@ -139,10 +140,13 @@ fn dist_binary(target: Option<&str>) -> Result<(), DynError> {
         eprintln!("no `strip` utility found")
     }
 
+    Ok(())
+}
+
+fn dist_readme() -> Result<(), DynError> {
     let mut readme = fs::File::create(env::current_dir()?.join("README.md"))?;
     readme.write_all(clap_markdown::help_markdown::<cmd::Cli>().as_bytes())?;
     readme.flush()?;
-
     Ok(())
 }
 

@@ -3,9 +3,11 @@ use clap::{
     value_parser, Args, Parser, Subcommand,
 };
 use clap_complete::Shell;
+use clio::ClioPath;
+use regex::Regex;
 
 #[derive(Parser, Debug, Clone)]
-#[command(arg_required_else_help(true))]
+#[command(arg_required_else_help(true), name = "version")]
 /// A tool for managing the version of a project
 pub struct Cli {
     #[command(subcommand)]
@@ -35,6 +37,47 @@ pub enum VersionCommand {
     Build(GetSetBuild),
     /// Get the current version number as a full SemVer string
     Get,
+    /// Track and update the version number in a file
+    File(FilesCommand),
+}
+
+#[derive(Parser, Debug, Clone)]
+#[command(arg_required_else_help(true))]
+pub struct FilesCommand {
+    #[clap(subcommand)]
+    pub command: Files,
+}
+
+#[derive(Subcommand, Debug, Clone)]
+#[command(arg_required_else_help(true))]
+pub enum Files {
+    /// Add a file to add the version number
+    Add(TrackFile),
+    /// Remove a file from tracking the version number
+    Rm(File),
+    /// Set the version number from a file
+    Update(File),
+    /// Update all files
+    UbdateAll,
+}
+
+#[derive(Args, Debug, Clone)]
+#[command(arg_required_else_help(true))]
+pub struct TrackFile {
+    /// The path to the file to track
+    #[arg(value_parser = value_parser!(ClioPath).exists().is_file())]
+    pub path: ClioPath,
+    /// The regex to match the version number
+    #[arg(value_parser = value_parser!(Regex))]
+    pub expr: Regex,
+}
+
+#[derive(Args, Debug, Clone)]
+#[command(arg_required_else_help(true))]
+pub struct File {
+    /// The path to the file
+    #[arg(value_parser = clap::value_parser!(ClioPath).exists().is_file())]
+    pub path: ClioPath,
 }
 
 #[derive(Parser, Debug, Clone)]

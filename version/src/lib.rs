@@ -1,5 +1,7 @@
 pub mod cli;
+pub mod files;
 pub mod version;
+
 use clap::{
     error::{Error, ErrorKind},
     Command,
@@ -11,6 +13,7 @@ pub enum VersionError {
     IoError(std::io::Error),
     TomlDeError(toml::de::Error),
     TomlSerError(toml::ser::Error),
+    RegexError(regex::Error),
     IncompleteCommand,
     InvalidOperation,
     NoCommand,
@@ -30,6 +33,7 @@ impl VersionError {
             VersionError::IoError(e) => format!("IO Error: {}", e),
             VersionError::TomlDeError(e) => format!("TOML Deserialize Error: {}", e),
             VersionError::TomlSerError(e) => format!("TOML Serialize Error: {}", e),
+            VersionError::RegexError(e) => format!("Regex Error: {}", e),
             VersionError::IncompleteCommand => "Please specify a subcommand".to_string(),
             VersionError::InvalidOperation => "Invalid operation".to_string(),
             VersionError::NoCommand => "Unable to parse the command".to_string(),
@@ -54,6 +58,7 @@ impl Into<ErrorKind> for &VersionError {
             VersionError::IoError(_) => ErrorKind::Io,
             VersionError::TomlDeError(_) => ErrorKind::Io,
             VersionError::TomlSerError(_) => ErrorKind::Io,
+            VersionError::RegexError(_) => ErrorKind::ValueValidation,
             VersionError::IncompleteCommand => ErrorKind::DisplayHelpOnMissingArgumentOrSubcommand,
             VersionError::InvalidOperation => ErrorKind::DisplayHelpOnMissingArgumentOrSubcommand,
             VersionError::NoCommand => ErrorKind::DisplayHelpOnMissingArgumentOrSubcommand,

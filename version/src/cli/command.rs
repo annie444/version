@@ -1,11 +1,23 @@
 use super::VersionCommand;
 use crate::{version::VersionFile, VersionError};
-use clap::{value_parser, Command, CommandFactory, Parser};
+use clap::{
+    builder::{styling::AnsiColor, Styles},
+    value_parser, Command, CommandFactory, Parser,
+};
 use clap_complete::{generate, Generator, Shell};
 use std::io;
 
+const STYLE: Styles = Styles::styled()
+    .header(AnsiColor::Yellow.on_default())
+    .error(AnsiColor::Red.on_default())
+    .usage(AnsiColor::Green.on_default())
+    .literal(AnsiColor::BrightBlue.on_default())
+    .placeholder(AnsiColor::Blue.on_default())
+    .valid(AnsiColor::Cyan.on_default())
+    .invalid(AnsiColor::Magenta.on_default());
+
 #[derive(Parser, Debug, Clone)]
-#[command(arg_required_else_help(true))]
+#[command(arg_required_else_help(true), styles = STYLE)]
 /// A tool for managing the version of a project
 pub struct Cli {
     #[command(subcommand)]

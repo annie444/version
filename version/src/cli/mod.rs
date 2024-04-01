@@ -1,4 +1,5 @@
 pub mod command;
+pub mod files;
 pub mod getset;
 pub mod version;
 

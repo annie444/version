@@ -1,6 +1,6 @@
-use crate::{cli::VersionCommand, VersionError};
+use crate::{cli::VersionCommand, files::TrackedFiles, VersionError};
 use serde::{Deserialize, Serialize};
-use std::{default::Default, env::current_dir, fs::File, io::prelude::*};
+use std::{default::Default, env::current_dir, fs::File, io::prelude::*, path::PathBuf};
 
 #[derive(Serialize, Deserialize)]
 pub struct Version {
@@ -12,6 +12,7 @@ pub struct Version {
     pub beta: Option<u8>,
     pub rc: Option<u8>,
     pub build: Option<String>,
+    pub files: Option<Vec<TrackedFiles>>,
 }
 
 impl Default for Version {
@@ -25,12 +26,18 @@ impl Default for Version {
             beta: None,
             rc: None,
             build: None,
+            files: None,
         }
     }
 }
 
 impl Version {
     pub fn sync(&mut self) -> Result<(), VersionError> {
+        self.sync_version_string()?;
+        self.update_tracked_files()
+    }
+
+    pub fn sync_version_string(&mut self) -> Result<(), VersionError> {
         self.version = format!("{}.{}.{}", self.major, self.minor, self.patch);
         if let Some(a) = self.alpha {
             let mut alpha: String = "-alpha".to_string();
@@ -65,6 +72,43 @@ impl Version {
             self.version = format!("{}+{}", self.version, build);
         }
         println!("{}", self.version);
+        Ok(())
+    }
+
+    pub fn update_tracked_files(&mut self) -> Result<(), VersionError> {
+        if self.files.is_some() {
+            for file in AsMut::<Vec<TrackedFiles>>::as_mut(self.files.as_mut().unwrap()).iter_mut()
+            {
+                file.update(self.version.clone())?;
+            }
+        }
+        Ok(())
+    }
+
+    pub fn add_tracked_file(&mut self, file: TrackedFiles) -> Result<(), VersionError> {
+        if self.files.is_some() {
+            AsMut::<Vec<TrackedFiles>>::as_mut(self.files.as_mut().unwrap()).push(file);
+        } else {
+            self.files = Some(vec![file]);
+        }
+        Ok(())
+    }
+
+    pub fn remove_tracked_file(&mut self, file: PathBuf) -> Result<(), VersionError> {
+        if self.files.is_some() {
+            AsMut::<Vec<TrackedFiles>>::as_mut(self.files.as_mut().unwrap()).retain(|f| f != file);
+        }
+        Ok(())
+    }
+
+    pub fn update_file(&mut self, file: PathBuf) -> Result<(), VersionError> {
+        if self.files.is_some() {
+            for f in AsMut::<Vec<TrackedFiles>>::as_mut(self.files.as_mut().unwrap()).iter_mut() {
+                if f == file {
+                    f.update(self.version.clone())?;
+                }
+            }
+        }
         Ok(())
     }
 
@@ -270,6 +314,10 @@ pub enum Operator {
     Rm,
     Reset,
     Get,
+    AddFile,
+    Update,
+    RmFile,
+    UpdateAll,
 }
 
 pub enum SetTypes {
@@ -277,6 +325,7 @@ pub enum SetTypes {
     SubNumber,
     Number(u8),
     String(String),
+    NewFile(TrackedFiles),
 }
 
 pub struct VersionFile {
@@ -324,6 +373,12 @@ impl VersionFile {
     }
 
     pub fn save(&mut self) -> Result<(), VersionError> {
+        self.save_version()?;
+        self.save_files()?;
+        Ok(())
+    }
+
+    fn save_version(&self) -> Result<(), VersionError> {
         let version = match toml::to_string_pretty(&self.ver) {
             Ok(v) => v,
             Err(e) => {
@@ -354,6 +409,17 @@ impl VersionFile {
             },
             Err(e) => Err(VersionError::IoError(e)),
         }
+    }
+
+    fn save_files(&mut self) -> Result<(), VersionError> {
+        if self.ver.files.is_some() {
+            for file in
+                AsMut::<Vec<TrackedFiles>>::as_mut(self.ver.files.as_mut().unwrap()).iter_mut()
+            {
+                file.update(self.ver.version.clone())?;
+            }
+        }
+        Ok(())
     }
 
     pub fn run(&mut self) -> Result<(), VersionError> {
@@ -424,6 +490,7 @@ impl VersionFile {
                         }
                         Operator::Reset => self.ver.reset_alpha(),
                         Operator::Rm => self.ver.rm_alpha(),
+                        _ => Err(VersionError::InvalidOperation),
                     },
                     None => Err(VersionError::IncompleteCommand),
                 },
@@ -441,6 +508,7 @@ impl VersionFile {
                         }
                         Operator::Reset => self.ver.reset_beta(),
                         Operator::Rm => self.ver.rm_beta(),
+                        _ => Err(VersionError::InvalidOperation),
                     },
                     None => Err(VersionError::IncompleteCommand),
                 },
@@ -458,6 +526,7 @@ impl VersionFile {
                         }
                         Operator::Reset => self.ver.reset_rc(),
                         Operator::Rm => self.ver.rm_rc(),
+                        _ => Err(VersionError::InvalidOperation),
                     },
                     None => Err(VersionError::IncompleteCommand),
                 },
@@ -480,6 +549,36 @@ impl VersionFile {
                     println!("{}", self.ver.version);
                     Ok(())
                 }
+                VersionCommand::File(_) => match &self.operator {
+                    Some(op) => match op {
+                        Operator::AddFile => match &self.value {
+                            Some(value) => match value {
+                                SetTypes::NewFile(file) => self.ver.add_tracked_file(file.clone()),
+                                _ => Err(VersionError::InvalidOperation),
+                            },
+                            None => Err(VersionError::IncompleteCommand),
+                        },
+                        Operator::RmFile => match &self.value {
+                            Some(value) => match value {
+                                SetTypes::String(value) => {
+                                    self.ver.remove_tracked_file(value.into())
+                                }
+                                _ => Err(VersionError::InvalidOperation),
+                            },
+                            None => Err(VersionError::IncompleteCommand),
+                        },
+                        Operator::Update => match &self.value {
+                            Some(value) => match value {
+                                SetTypes::String(file) => self.ver.update_file(file.into()),
+                                _ => Err(VersionError::InvalidOperation),
+                            },
+                            None => Err(VersionError::IncompleteCommand),
+                        },
+                        Operator::UpdateAll => self.ver.update_tracked_files(),
+                        _ => Err(VersionError::InvalidOperation),
+                    },
+                    None => Err(VersionError::IncompleteCommand),
+                },
             },
             _ => Err(VersionError::InvalidOperation),
         }

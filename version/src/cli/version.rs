@@ -1,4 +1,7 @@
-use crate::cli::getset::{GetSet, GetSetBuild, GetSetRm};
+use crate::cli::{
+    files::FilesCommand,
+    getset::{GetSet, GetSetBuild, GetSetRm},
+};
 use crate::{version::VersionFile, VersionError};
 use clap::Subcommand;
 
@@ -22,6 +25,8 @@ pub enum VersionCommand {
     Build(GetSetBuild),
     /// Get the current version number as a full SemVer string
     Get,
+    /// Track and update the version number in a file
+    File(FilesCommand),
 }
 
 impl VersionCommand {
@@ -58,6 +63,10 @@ impl VersionCommand {
             VersionCommand::Get => {
                 version.key = Some(self.clone());
                 version.run()
+            }
+            VersionCommand::File(file_cmd) => {
+                version.key = Some(self.clone());
+                file_cmd.run(version)
             }
         }
     }

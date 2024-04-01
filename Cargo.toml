@@ -1,6 +1,6 @@
 [workspace]
 members = [
-    "ver",
+    "version-manager",
     "xtask",
 ]
 resolver = "2"

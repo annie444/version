@@ -1,9 +1,8 @@
-version = "0.1.0-rc.1"
-major = 0
-minor = 1
+version = "1.0.0"
+major = 1
+minor = 0
 patch = 0
-rc = 1
 
 [[files]]
-file = "version/Cargo.toml"
+file = "version-manager/Cargo.toml"
 expr = "version = \"(.*)\""

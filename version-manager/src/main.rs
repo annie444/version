@@ -1,5 +1,5 @@
 use clap::{CommandFactory, Parser};
-use ver::{cli, version::VersionFile};
+use version_manager::{cli, version::VersionFile};
 
 fn main() {
     let args = cli::Cli::parse();

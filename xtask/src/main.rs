@@ -21,13 +21,17 @@ fn main() {
 }
 
 fn try_main() -> Result<(), DynError> {
-    let task = env::args().nth(1);
-    match task.as_deref() {
-        Some("dist") => dist()?,
-        Some("target") => target()?,
-        Some("package") => package()?,
-        Some("dist-unk") => dist_unknown()?,
-        Some("package-unk") => package_unknown()?,
+    let task: Vec<String> = env::args().collect();
+    match task[1].as_str() {
+        "dist" => dist()?,
+        "target" => target(task[2].clone(), false)?,
+        "targets" => targets()?,
+        "package" => package(false)?,
+        "dist-unk" => dist_unknown()?,
+        "package-unk" => package_unknown(false)?,
+        "package-targets" => package_targets(false)?,
+        "publish-all" => package_targets(true)?,
+        "publish" => target(task[2].clone(), true)?,
         _ => print_help(),
     }
     Ok(())
@@ -35,30 +39,88 @@ fn try_main() -> Result<(), DynError> {
 
 fn print_help() {
     eprintln!(
-        "Tasks:
+        r#"
+COMMANDS:
 
-dist              builds application and man pages
-target            builds application and man pages for multiple targets
-package           builds and packages a tarball for the application and man pages
-dist-unk          builds application and man pages for a nonspecific OS
-package-unk       builds and packages a tarball for the application and man pages
-"
+    dist              builds application and man pages
+    dist-unk          builds application and man pages for a nonspecific OS
+    target [TRIPLE]   builds application and man pages for a specific target
+    targets           builds application and man pages for multiple targets
+    package           builds and packages a tarball for the application and man pages
+    package-unk       builds and packages a tarball for the application and man pages for a nonspecific OS
+    package-targets   builds and packages a tarball for the application and man pages for multiple targets
+    publish-all       builds, packages, and publishes for multiple targets
+    publish [TRIPLE]  builds, packages, and publishes for a specific target
+
+
+TRIPLES:
+
+    aarch64-apple-darwin
+    aarch64-unknown-linux-gnu
+    aarch64-unknown-linux-musl
+    arm-unknown-linux-gnueabi
+    arm-unknown-linux-gnueabihf
+    arm-unknown-linux-musleabihf
+    armv7-unknown-linux-gnueabihf
+    armv7-unknown-linux-musleabihf
+    i686-unknown-linux-gnu
+    i686-unknown-linux-musl
+    x86_64-apple-darwin
+    x86_64-unknown-linux-gnu
+    x86_64-unknown-linux-musl
+"#
     )
 }
 
-static TARGETS: [&'static str; 6] = [
+static TARGETS: [&'static str; 13] = [
     "aarch64-apple-darwin",
     "aarch64-unknown-linux-gnu",
-    "aarch64-unknown-none",
+    "aarch64-unknown-linux-musl",
+    "arm-unknown-linux-gnueabi",
+    "arm-unknown-linux-gnueabihf",
+    "arm-unknown-linux-musleabihf",
+    "armv7-unknown-linux-gnueabihf",
+    "armv7-unknown-linux-musleabihf",
+    "i686-unknown-linux-gnu",
+    "i686-unknown-linux-musl",
     "x86_64-apple-darwin",
     "x86_64-unknown-linux-gnu",
-    "x86_64-unknown-none",
+    "x86_64-unknown-linux-musl",
 ];
 
-fn target() -> Result<(), DynError> {
+fn targets() -> Result<(), DynError> {
     println!("Installing target build chains");
     install_targets()?;
     build_targets()?;
+    Ok(())
+}
+
+fn target(target: String, up: bool) -> Result<(), DynError> {
+    println!("Installing target build chains");
+    if dist_dir(Some(&target)).join(PACKAGE_NAME).exists() {
+        if dist_dir(Some(&target)).join(PACKAGE_NAME).is_file() {
+            let _ = fs::remove_file(&dist_dir(Some(&target)).join(PACKAGE_NAME));
+        }
+        let _ = fs::remove_dir_all(&dist_dir(Some(&target)).join(PACKAGE_NAME));
+    }
+    match fs::create_dir_all(&dist_dir(Some(&target)).join(PACKAGE_NAME)) {
+        Ok(_) => {}
+        Err(e) => {
+            return Err((
+                format!("Error when creating 'dist/{}/{}' dir", target, PACKAGE_NAME),
+                Box::new(e),
+            ))
+        }
+    };
+    let target_dir = format!("{}/{}", target, PACKAGE_NAME);
+
+    install_target(&target)?;
+    dist_binary(Some(&target), Some(PACKAGE_NAME))?;
+    dist_manpage(Some(&target_dir))?;
+    dist_readme(Some(&target_dir))?;
+    dist_license(Some(&target_dir))?;
+    package_release(Some(&target), up)?;
+
     Ok(())
 }
 
@@ -116,6 +178,37 @@ fn install_target(target: &str) -> Result<(), DynError> {
     Ok(())
 }
 
+fn package_targets(up: bool) -> Result<(), DynError> {
+    for target in TARGETS {
+        if dist_dir(Some(&format!("{}/{}", target, PACKAGE_NAME))).exists() {
+            if dist_dir(Some(&format!("{}/{}", target, PACKAGE_NAME))).is_file() {
+                let _ = fs::remove_file(&dist_dir(Some(&format!("{}/{}", target, PACKAGE_NAME))));
+            }
+            let _ = fs::remove_dir_all(&dist_dir(Some(&format!("{}/{}", target, PACKAGE_NAME))));
+        }
+        match fs::create_dir_all(&dist_dir(Some(&format!("{}/{}", target, PACKAGE_NAME)))) {
+            Ok(_) => {}
+            Err(e) => {
+                return Err((
+                    format!(
+                        "Error when creating 'dist/{}' dir",
+                        &format!("{}/{}", target, PACKAGE_NAME)
+                    ),
+                    Box::new(e),
+                ))
+            }
+        };
+
+        dist_binary(Some(target), Some(PACKAGE_NAME))?;
+        dist_manpage(Some(&format!("{}/{}", target, PACKAGE_NAME)))?;
+        dist_readme(Some(&format!("{}/{}", target, PACKAGE_NAME)))?;
+        dist_license(Some(&format!("{}/{}", target, PACKAGE_NAME)))?;
+
+        package_release(Some(target), up)?;
+    }
+    Ok(())
+}
+
 fn build_targets() -> Result<(), DynError> {
     if dist_dir(None).exists() {
         let _ = fs::remove_dir_all(&dist_dir(None));
@@ -159,10 +252,10 @@ fn dist_unknown() -> Result<(), DynError> {
     Ok(())
 }
 
-fn package_unknown() -> Result<(), DynError> {
+fn package_unknown(up: bool) -> Result<(), DynError> {
     let target = &format!("{}-unknown-none", std::env::consts::ARCH);
     dist_unknown()?;
-    package_release(Some(target))?;
+    package_release(Some(target), up)?;
     Ok(())
 }
 
@@ -183,7 +276,7 @@ fn dist() -> Result<(), DynError> {
     Ok(())
 }
 
-fn package() -> Result<(), DynError> {
+fn package(up: bool) -> Result<(), DynError> {
     if dist_dir(Some(PACKAGE_NAME)).exists() {
         if dist_dir(Some(PACKAGE_NAME)).is_file() {
             let _ = fs::remove_file(&dist_dir(Some(PACKAGE_NAME)));
@@ -205,14 +298,14 @@ fn package() -> Result<(), DynError> {
     dist_readme(Some(PACKAGE_NAME))?;
     dist_license(Some(PACKAGE_NAME))?;
 
-    package_release(None)?;
+    package_release(None, up)?;
     Ok(())
 }
 
 fn dist_binary(target: Option<&str>, output: Option<&str>) -> Result<(), DynError> {
     let cargo = env::var("CARGO").unwrap_or_else(|_| "cargo".to_string());
     let status = match target {
-        Some(tar) => match Command::new(cargo)
+        Some(tar) => match Command::new("cross")
             .current_dir(project_root())
             .args(&["build", "--target", tar, "--release"])
             .status()
@@ -438,7 +531,7 @@ fn get_host() -> Result<String, DynError> {
     }
 }
 
-fn package_release(target: Option<&str>) -> Result<(), DynError> {
+fn package_release(target: Option<&str>, up: bool) -> Result<(), DynError> {
     let version = env!("CARGO_PKG_VERSION");
     let host = match target {
         Some(target) => target.to_owned(),
@@ -488,5 +581,42 @@ fn package_release(target: Option<&str>) -> Result<(), DynError> {
         ));
     }
 
+    if up {
+        publish(version.to_string(), package)?;
+    }
+
+    Ok(())
+}
+
+fn publish(version: String, file: String) -> Result<(), DynError> {
+    let status = match Command::new("gh")
+        .arg("release")
+        .arg("upload")
+        .arg(format!("v{}", version))
+        .arg(file.clone())
+        .stdout(Stdio::null())
+        .status()
+    {
+        Ok(stat) => stat,
+        Err(e) => {
+            return Err((
+                format!(
+                    "Error when running 'gh release upload v{} {}'",
+                    version, file
+                ),
+                Box::new(e),
+            ))
+        }
+    };
+
+    if !status.success() {
+        return Err((
+            format!(
+                "Command 'gh release upload v{} {}' was unsuccessful",
+                version, file
+            ),
+            Box::new(std::fmt::Error),
+        ));
+    }
     Ok(())
 }

@@ -2,17 +2,20 @@ mod cmd;
 use clap::CommandFactory;
 
 use std::{
-    env, fs,
+    env, error, fs,
     io::Write,
     path::{Path, PathBuf},
     process::{Command, Stdio},
 };
 
-type DynError = Box<dyn std::error::Error>;
+type DynError = (String, Box<dyn error::Error>);
+
+const PACKAGE_NAME: &'static str = "version";
+const CRATE_NAME: &'static str = "version-manager";
 
 fn main() {
     if let Err(e) = try_main() {
-        eprintln!("{}", e);
+        eprintln!("{}: {}", e.0, e.1);
         std::process::exit(-1);
     }
 }
@@ -22,6 +25,9 @@ fn try_main() -> Result<(), DynError> {
     match task.as_deref() {
         Some("dist") => dist()?,
         Some("target") => target()?,
+        Some("package") => package()?,
+        Some("dist-unk") => dist_unknown()?,
+        Some("package-unk") => package_unknown()?,
         _ => print_help(),
     }
     Ok(())
@@ -31,26 +37,22 @@ fn print_help() {
     eprintln!(
         "Tasks:
 
-dist            builds application and man pages
-target          builds application and man pages for multiple targets
+dist              builds application and man pages
+target            builds application and man pages for multiple targets
+package           builds and packages a tarball for the application and man pages
+dist-unk          builds application and man pages for a nonspecific OS
+package-unk       builds and packages a tarball for the application and man pages
 "
     )
 }
 
-static TARGETS: [&'static str; 13] = [
+static TARGETS: [&'static str; 6] = [
     "aarch64-apple-darwin",
     "aarch64-unknown-linux-gnu",
-    "aarch64-unknown-linux-musl",
     "aarch64-unknown-none",
-    "aarch64-unknown-uefi",
     "x86_64-apple-darwin",
-    "x86_64-sun-solaris",
-    "x86_64-unknown-freebsd",
     "x86_64-unknown-linux-gnu",
-    "x86_64-unknown-linux-musl",
-    "x86_64-unknown-netbsd",
     "x86_64-unknown-none",
-    "x86_64-unknown-uefi",
 ];
 
 fn target() -> Result<(), DynError> {
@@ -63,64 +65,215 @@ fn target() -> Result<(), DynError> {
 fn install_targets() -> Result<(), DynError> {
     let rustup = env::var("RUSTUP").unwrap_or_else(|_| "rustup".to_string());
     for target in TARGETS {
-        let status = Command::new(&rustup)
+        let status = match Command::new(&rustup)
             .current_dir(project_root())
             .args(&["target", "add", target])
-            .status()?;
+            .status()
+        {
+            Ok(stat) => stat,
+            Err(e) => {
+                return Err((
+                    format!("Error in command 'cargo target add {}'", target),
+                    Box::new(e),
+                ))
+            }
+        };
 
         if !status.success() {
-            Err(format!("failed to add target {}", target))?;
+            return Err((
+                format!("failed to add target {}", target),
+                Box::new(std::fmt::Error),
+            ));
         }
     }
 
     Ok(())
 }
 
-fn build_targets() -> Result<(), DynError> {
-    let _ = fs::remove_dir_all(&dist_dir(None));
-    fs::create_dir_all(&dist_dir(None))?;
+fn install_target(target: &str) -> Result<(), DynError> {
+    let rustup = env::var("RUSTUP").unwrap_or_else(|_| "rustup".to_string());
+    let status = match Command::new(&rustup)
+        .current_dir(project_root())
+        .args(&["target", "add", target])
+        .status()
+    {
+        Ok(stat) => stat,
+        Err(e) => {
+            return Err((
+                format!("Error in command 'cargo target add {}'", target),
+                Box::new(e),
+            ))
+        }
+    };
 
-    for target in TARGETS {
-        let _ = fs::remove_dir_all(&dist_dir(Some(target)));
-        fs::create_dir_all(&dist_dir(Some(target)))?;
-
-        dist_binary(Some(target))?;
+    if !status.success() {
+        return Err((
+            format!("failed to add target {}", target),
+            Box::new(std::fmt::Error),
+        ));
     }
 
+    Ok(())
+}
+
+fn build_targets() -> Result<(), DynError> {
+    if dist_dir(None).exists() {
+        let _ = fs::remove_dir_all(&dist_dir(None));
+    }
+    match fs::create_dir_all(&dist_dir(None)) {
+        Ok(_) => {}
+        Err(e) => return Err(("Error when creating build dir".to_string(), Box::new(e))),
+    };
+
+    for target in TARGETS {
+        if dist_dir(Some(target)).exists() {
+            let _ = fs::remove_dir_all(&dist_dir(Some(target)));
+        }
+        match fs::create_dir_all(&dist_dir(Some(target))) {
+            Ok(_) => {}
+            Err(e) => return Err(("Error when creating target dir".to_string(), Box::new(e))),
+        };
+
+        dist_binary(Some(target), None)?;
+    }
+
+    Ok(())
+}
+
+fn dist_unknown() -> Result<(), DynError> {
+    let target = &format!("{}-unknown-none", std::env::consts::ARCH);
+    if dist_dir(Some(target)).exists() {
+        let _ = fs::remove_dir_all(&dist_dir(Some(target)));
+    }
+    match fs::create_dir_all(&dist_dir(Some(target))) {
+        Ok(_) => {}
+        Err(e) => return Err(("Error when creating 'dist' dir".to_string(), Box::new(e))),
+    };
+
+    install_target(target)?;
+    dist_binary(Some(target), None)?;
+    dist_manpage(Some(target))?;
+    dist_readme(Some(target))?;
+    dist_license(Some(target))?;
+
+    Ok(())
+}
+
+fn package_unknown() -> Result<(), DynError> {
+    let target = &format!("{}-unknown-none", std::env::consts::ARCH);
+    dist_unknown()?;
+    package_release(Some(target))?;
     Ok(())
 }
 
 fn dist() -> Result<(), DynError> {
-    let _ = fs::remove_dir_all(&dist_dir(None));
-    fs::create_dir_all(&dist_dir(None))?;
+    if dist_dir(None).exists() {
+        let _ = fs::remove_dir_all(&dist_dir(None));
+    }
+    match fs::create_dir_all(&dist_dir(None)) {
+        Ok(_) => {}
+        Err(e) => return Err(("Error when creating 'dist' dir".to_string(), Box::new(e))),
+    };
 
-    dist_binary(None)?;
-    dist_manpage()?;
-    dist_readme()?;
+    dist_binary(None, None)?;
+    dist_manpage(None)?;
+    dist_readme(None)?;
+    dist_license(None)?;
 
     Ok(())
 }
 
-fn dist_binary(target: Option<&str>) -> Result<(), DynError> {
+fn package() -> Result<(), DynError> {
+    if dist_dir(Some(PACKAGE_NAME)).exists() {
+        if dist_dir(Some(PACKAGE_NAME)).is_file() {
+            let _ = fs::remove_file(&dist_dir(Some(PACKAGE_NAME)));
+        }
+        let _ = fs::remove_dir_all(&dist_dir(Some(PACKAGE_NAME)));
+    }
+    match fs::create_dir_all(&dist_dir(Some(PACKAGE_NAME))) {
+        Ok(_) => {}
+        Err(e) => {
+            return Err((
+                format!("Error when creating 'dist/{}' dir", PACKAGE_NAME),
+                Box::new(e),
+            ))
+        }
+    };
+
+    dist_binary(None, Some(PACKAGE_NAME))?;
+    dist_manpage(Some(PACKAGE_NAME))?;
+    dist_readme(Some(PACKAGE_NAME))?;
+    dist_license(Some(PACKAGE_NAME))?;
+
+    package_release(None)?;
+    Ok(())
+}
+
+fn dist_binary(target: Option<&str>, output: Option<&str>) -> Result<(), DynError> {
     let cargo = env::var("CARGO").unwrap_or_else(|_| "cargo".to_string());
     let status = match target {
-        Some(tar) => Command::new(cargo)
+        Some(tar) => match Command::new(cargo)
             .current_dir(project_root())
             .args(&["build", "--target", tar, "--release"])
-            .status()?,
-        None => Command::new(cargo)
+            .status()
+        {
+            Ok(stat) => stat,
+            Err(e) => {
+                return Err((
+                    format!("Error in command 'cargo build --target {} --release'", tar),
+                    Box::new(e),
+                ))
+            }
+        },
+        None => match Command::new(cargo)
             .current_dir(project_root())
             .args(&["build", "--release"])
-            .status()?,
+            .status()
+        {
+            Ok(stat) => stat,
+            Err(e) => {
+                return Err((
+                    "Error in command 'cargo build --release'".to_string(),
+                    Box::new(e),
+                ))
+            }
+        },
     };
 
     if !status.success() {
-        Err("cargo build failed")?;
+        return Err((
+            format!("Cargo build failed with exit code: {:?}", status.code()),
+            Box::new(std::fmt::Error),
+        ));
     }
 
-    let dst = project_root().join("target/release/version");
+    let dst = project_root().join(format!("target/release/{}", CRATE_NAME));
+    if !dist_dir(target).exists() {
+        match fs::create_dir_all(dist_dir(target)) {
+            Ok(_) => {}
+            Err(e) => {
+                return Err((
+                    format!("Error when creating subdirectory {:?}", dist_dir(target)),
+                    Box::new(e),
+                ))
+            }
+        };
+    }
 
-    fs::copy(&dst, dist_dir(target).join("version"))?;
+    let out_dir = match output {
+        Some(out) => dist_dir(target).join(out).join(PACKAGE_NAME),
+        None => dist_dir(target).join(PACKAGE_NAME),
+    };
+
+    match fs::copy(&dst, out_dir.clone()) {
+        Ok(_) => {}
+        Err(e) => {
+            return Err((
+                format!("Error when copying {:?} to {:?}", dst, out_dir),
+                Box::new(e),
+            ))
+        }
+    };
 
     if Command::new("strip")
         .arg("--version")
@@ -129,12 +282,24 @@ fn dist_binary(target: Option<&str>) -> Result<(), DynError> {
         .is_ok()
     {
         eprintln!("stripping the binary");
-        let status = Command::new("strip")
+        let status = match Command::new("strip")
             .arg("--strip-all")
-            .arg(&dst)
-            .status()?;
+            .arg(&out_dir.clone())
+            .status()
+        {
+            Ok(stat) => stat,
+            Err(e) => {
+                return Err((
+                    format!(
+                        "Error when running command 'strip --strip-all {:?}",
+                        out_dir
+                    ),
+                    Box::new(e),
+                ))
+            }
+        };
         if !status.success() {
-            Err("strip failed")?;
+            return Err(("strip failed".to_string(), Box::new(std::fmt::Error)));
         }
     } else {
         eprintln!("no `strip` utility found")
@@ -143,15 +308,99 @@ fn dist_binary(target: Option<&str>) -> Result<(), DynError> {
     Ok(())
 }
 
-fn dist_readme() -> Result<(), DynError> {
-    let mut readme = fs::File::create(env::current_dir()?.join("README.md"))?;
-    readme.write_all(clap_markdown::help_markdown::<cmd::Cli>().as_bytes())?;
-    readme.flush()?;
+fn dist_readme(target: Option<&str>) -> Result<(), DynError> {
+    let mut readme = match fs::File::create(project_root().join("README.md")) {
+        Ok(re) => re,
+        Err(e) => {
+            return Err((
+                "Error when trying to create the README".to_string(),
+                Box::new(e),
+            ))
+        }
+    };
+    match readme.write_all(clap_markdown::help_markdown::<cmd::Cli>().as_bytes()) {
+        Ok(_) => {}
+        Err(e) => return Err(("Error when writing to the README".to_string(), Box::new(e))),
+    };
+    match readme.flush() {
+        Ok(_) => {}
+        Err(e) => {
+            return Err((
+                "Unable to flush the README file buffer".to_string(),
+                Box::new(e),
+            ))
+        }
+    };
+
+    if dist_dir(target).join("doc").exists() {
+        let _ = fs::remove_dir_all(&dist_dir(target).join("doc"));
+    }
+    match fs::create_dir_all(&dist_dir(target).join("doc")) {
+        Ok(_) => {}
+        Err(e) => {
+            return Err((
+                "Error when creating 'dist/doc' dir".to_string(),
+                Box::new(e),
+            ))
+        }
+    };
+
+    match fs::copy(
+        project_root().join("README.md"),
+        dist_dir(target).join("doc/README"),
+    ) {
+        Ok(_) => {}
+        Err(e) => {
+            return Err((
+                format!(
+                    "Error when copying {:?} to {:?}",
+                    project_root().join("README.md"),
+                    dist_dir(target).join("doc/README"),
+                ),
+                Box::new(e),
+            ))
+        }
+    };
     Ok(())
 }
 
-fn dist_manpage() -> Result<(), DynError> {
-    clap_mangen::generate_to(cmd::Cli::command(), dist_dir(None))?;
+fn dist_license(target: Option<&str>) -> Result<(), DynError> {
+    match fs::copy(
+        project_root().join("LICENSE"),
+        dist_dir(target).join("doc/LICENSE"),
+    ) {
+        Ok(_) => Ok(()),
+        Err(e) => Err((
+            format!(
+                "Error when copying {:?} to {:?}",
+                project_root().join("LICENSE.md"),
+                dist_dir(target).join("doc/LICENSE"),
+            ),
+            Box::new(e),
+        )),
+    }
+}
+
+fn dist_manpage(target: Option<&str>) -> Result<(), DynError> {
+    if dist_dir(target).join("manpages").exists() {
+        let _ = fs::remove_dir_all(dist_dir(target).join("manpages"));
+    }
+    match fs::create_dir_all(dist_dir(target).join("manpages")) {
+        Ok(_) => {}
+        Err(e) => {
+            return Err((
+                format!(
+                    "Unable to create directory {:?}",
+                    dist_dir(target).join("manpages")
+                ),
+                Box::new(e),
+            ))
+        }
+    }
+    match clap_mangen::generate_to(cmd::Cli::command(), dist_dir(target).join("manpages")) {
+        Ok(_) => {}
+        Err(e) => return Err(("Error when creating the MAN pages".to_string(), Box::new(e))),
+    };
     Ok(())
 }
 
@@ -168,4 +417,76 @@ fn dist_dir(target: Option<&str>) -> PathBuf {
         Some(target) => project_root().join(format!("target/dist/{}", target)),
         None => project_root().join("target/dist"),
     }
+}
+
+fn get_host() -> Result<String, DynError> {
+    let output = match Command::new("rustc").arg("-vV").output() {
+        Ok(host) => host,
+        Err(e) => return Err(("Unable to get rustc output".to_string(), Box::new(e))),
+    };
+
+    let stdout_buf = match String::from_utf8(output.stdout) {
+        Ok(out) => out,
+        Err(e) => return Err(("Unable to parse output".to_string(), Box::new(e))),
+    };
+    match stdout_buf.lines().find_map(|l| l.strip_prefix("host: ")) {
+        Some(host) => Ok(host.to_string()),
+        None => Err((
+            "Host triple not found".to_string(),
+            Box::new(std::fmt::Error),
+        )),
+    }
+}
+
+fn package_release(target: Option<&str>) -> Result<(), DynError> {
+    let version = env!("CARGO_PKG_VERSION");
+    let host = match target {
+        Some(target) => target.to_owned(),
+        None => get_host()?,
+    };
+
+    let package = format!("{}-v{}-{}.tar.gz", PACKAGE_NAME, version, host);
+
+    match std::env::set_current_dir(dist_dir(target)) {
+        Ok(_) => {}
+        Err(e) => {
+            return Err((
+                "Unable to cd into the dist directory".to_string(),
+                Box::new(e),
+            ))
+        }
+    };
+
+    let status = match Command::new("tar")
+        .arg("-c")
+        .arg("-z")
+        .arg("-f")
+        .arg(package.clone())
+        .arg(PACKAGE_NAME)
+        .stdout(Stdio::null())
+        .status()
+    {
+        Ok(stat) => stat,
+        Err(e) => {
+            return Err((
+                format!(
+                    "Error when running command 'tar -c -z -f {} {}'",
+                    package, PACKAGE_NAME
+                ),
+                Box::new(e),
+            ))
+        }
+    };
+
+    if !status.success() {
+        return Err((
+            format!(
+                "Command 'tar -c -z -f {} {}' was unsuccessful",
+                package, PACKAGE_NAME
+            ),
+            Box::new(std::fmt::Error),
+        ));
+    }
+
+    Ok(())
 }

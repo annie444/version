@@ -6,3 +6,7 @@ patch = 0
 [[files]]
 file = "version-manager/Cargo.toml"
 expr = "version = \"(.*)\""
+
+[[files]]
+file = "xtask/Cargo.toml"
+expr = "version = \"(.*)\""

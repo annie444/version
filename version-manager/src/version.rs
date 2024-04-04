@@ -318,6 +318,7 @@ pub enum Operator {
     Update,
     RmFile,
     UpdateAll,
+    ListFiles,
 }
 
 pub enum SetTypes {
@@ -575,6 +576,14 @@ impl VersionFile {
                             None => Err(VersionError::IncompleteCommand),
                         },
                         Operator::UpdateAll => self.ver.update_tracked_files(),
+                        Operator::ListFiles => {
+                            if self.ver.files.is_some() {
+                                for file in self.ver.files.as_ref().unwrap().iter() {
+                                    println!("{}", file.file);
+                                }
+                            }
+                            Ok(())
+                        }
                         _ => Err(VersionError::InvalidOperation),
                     },
                     None => Err(VersionError::IncompleteCommand),

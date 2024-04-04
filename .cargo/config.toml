@@ -14,7 +14,7 @@ linker = "arm-linux-gnueabihf-gcc"
 linker = "arm-linux-gnueabihf-gcc"
 [target.arm-unknown-linux-musleabihf]
 linker = "arm-linux-gnueabihf-gcc"
-[target.aarch64-apple-darwin]
-linker = "arm64-apple-darwin23-cc"
+#[target.aarch64-apple-darwin]
+#linker = "arm64-apple-darwin23-cc"
 [target.x86_64-apple-darwin]
 linker = "x86_64-apple-darwin23-cc"

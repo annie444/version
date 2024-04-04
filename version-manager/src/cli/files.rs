@@ -25,6 +25,8 @@ pub enum Files {
     Update(File),
     /// Update all files
     UpdateAll,
+    /// List tracked files
+    List,
 }
 
 #[derive(Args, Debug, Clone)]
@@ -87,6 +89,10 @@ impl Files {
             }
             Files::UpdateAll => {
                 version.operator = Some(Operator::UpdateAll);
+                version.run()
+            }
+            Files::List => {
+                version.operator = Some(Operator::ListFiles);
                 version.run()
             }
         }

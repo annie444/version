@@ -454,7 +454,75 @@ fn dist_readme(target: Option<&str>) -> Result<(), DynError> {
             ))
         }
     };
-    Ok(())
+
+    match fs::copy(
+        project_root().join("README.md"),
+        project_root().join(CRATE_NAME).join("README.md"),
+    ) {
+        Ok(_) => Ok(()),
+        Err(e) => Err((
+            format!(
+                "Error when copying {:?} to {:?}",
+                project_root().join("README.md"),
+                project_root().join(CRATE_NAME).join("README.md"),
+            ),
+            Box::new(e),
+        )),
+    }
+}
+
+fn dist_changelog(target: Option<&str>) -> Result<(), DynError> {
+    let status = match Command::new("auto-changelog")
+        .stdout(Stdio::null())
+        .status()
+    {
+        Ok(stat) => stat,
+        Err(e) => {
+            return Err((
+                "Error when running command 'auto-changelog'".to_string(),
+                Box::new(e),
+            ))
+        }
+    };
+
+    if !status.success() {
+        return Err((
+            "Command 'auto-changelog' was unsuccessful".to_string(),
+            Box::new(std::fmt::Error),
+        ));
+    }
+
+    match fs::copy(
+        project_root().join("CHANGELOG.md"),
+        dist_dir(target).join("doc/CHANGELOG"),
+    ) {
+        Ok(_) => {}
+        Err(e) => {
+            return Err((
+                format!(
+                    "Error when copying {:?} to {:?}",
+                    project_root().join("CHANGELOG.md"),
+                    dist_dir(target).join("doc/CHANGELOG"),
+                ),
+                Box::new(e),
+            ))
+        }
+    };
+
+    match fs::copy(
+        project_root().join("CHANGELOG.md"),
+        project_root().join(CRATE_NAME).join("CHANGELOG.md"),
+    ) {
+        Ok(_) => Ok(()),
+        Err(e) => Err((
+            format!(
+                "Error when copying {:?} to {:?}",
+                project_root().join("CHANGELOG.md"),
+                project_root().join(CRATE_NAME).join("CHANGELOG.md"),
+            ),
+            Box::new(e),
+        )),
+    }
 }
 
 fn dist_license(target: Option<&str>) -> Result<(), DynError> {
@@ -462,12 +530,29 @@ fn dist_license(target: Option<&str>) -> Result<(), DynError> {
         project_root().join("LICENSE"),
         dist_dir(target).join("doc/LICENSE"),
     ) {
+        Ok(_) => {}
+        Err(e) => {
+            return Err((
+                format!(
+                    "Error when copying {:?} to {:?}",
+                    project_root().join("LICENSE.md"),
+                    dist_dir(target).join("doc/LICENSE"),
+                ),
+                Box::new(e),
+            ))
+        }
+    };
+
+    match fs::copy(
+        project_root().join("LICENSE.md"),
+        project_root().join(CRATE_NAME).join("LICENSE.md"),
+    ) {
         Ok(_) => Ok(()),
         Err(e) => Err((
             format!(
                 "Error when copying {:?} to {:?}",
                 project_root().join("LICENSE.md"),
-                dist_dir(target).join("doc/LICENSE"),
+                project_root().join(CRATE_NAME).join("LICENSE.md"),
             ),
             Box::new(e),
         )),

@@ -22,7 +22,7 @@ const STYLE: Styles = Styles::styled()
 pub struct Cli {
     #[command(subcommand)]
     pub command: Option<VersionCommand>,
-    #[arg(value_parser = value_parser!(Shell), exclusive = true)]
+    #[arg(long, value_parser = value_parser!(Shell), exclusive = true)]
     /// Generate shell completions
     pub generator: Option<Shell>,
 }

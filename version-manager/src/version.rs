@@ -37,6 +37,42 @@ impl Version {
         self.update_tracked_files()
     }
 
+    pub fn get_version(&self) -> String {
+        format!("{}.{}.{}", self.major, self.minor, self.patch)
+    }
+
+    pub fn get_revision(&self) -> String {
+        let mut revision = "".to_string();
+        if let Some(a) = self.alpha {
+            if a > 0 {
+                revision.push_str(&format!("alpha.{}", a));
+            } else {
+                revision.push_str("alpha");
+            }
+        }
+        if let Some(b) = self.beta {
+            if revision.len() > 0 {
+                revision.push_str("-");
+            }
+            if b > 0 {
+                revision.push_str(&format!("beta.{}", b));
+            } else {
+                revision.push_str("beta");
+            }
+        }
+        if let Some(rc) = self.rc {
+            if revision.len() > 0 {
+                revision.push_str("-");
+            }
+            if rc > 0 {
+                revision.push_str(&format!("rc.{}", rc));
+            } else {
+                revision.push_str("rc");
+            }
+        }
+        revision
+    }
+
     pub fn sync_version_string(&mut self) -> Result<(), VersionError> {
         self.version = format!("{}.{}.{}", self.major, self.minor, self.patch);
         if let Some(a) = self.alpha {
@@ -548,6 +584,14 @@ impl VersionFile {
                 },
                 VersionCommand::Get => {
                     println!("{}", self.ver.version);
+                    Ok(())
+                }
+                VersionCommand::Version => {
+                    println!("{}", self.ver.get_version());
+                    Ok(())
+                }
+                VersionCommand::Revision => {
+                    println!("{}", self.ver.get_revision());
                     Ok(())
                 }
                 VersionCommand::File(_) => match &self.operator {

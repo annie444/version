@@ -1,0 +1,8 @@
+{
+  "output": "CHANGELOG.md",
+  "template": "keepachangelog",
+  "commit-limit": false,
+  "backfill-limit": false,
+  "unreleased": true,
+  "sort-commits": "date-desc"
+}

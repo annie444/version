@@ -25,6 +25,10 @@ pub enum VersionCommand {
     Build(GetSetBuild),
     /// Get the current version number as a full SemVer string
     Get,
+    /// Get just the version number as a string with no revision or build identifiers
+    Version,
+    /// Get just the revision number as a string with no build identifiers
+    Revision,
     /// Track and update the version number in a file
     File(FilesCommand),
 }
@@ -67,6 +71,14 @@ impl VersionCommand {
             VersionCommand::File(file_cmd) => {
                 version.key = Some(self.clone());
                 file_cmd.run(version)
+            }
+            VersionCommand::Version => {
+                version.key = Some(self.clone());
+                version.run()
+            }
+            VersionCommand::Revision => {
+                version.key = Some(self.clone());
+                version.run()
             }
         }
     }

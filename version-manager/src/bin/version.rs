@@ -1,10 +1,19 @@
 use clap::{CommandFactory, Parser};
-use version_manager::{cli, version::VersionFile};
+use std::env::current_dir;
+use version_manager::{cli, version::VersionFile, VersionError};
 
 fn main() {
     let args = cli::Cli::parse();
 
-    let mut version = match VersionFile::load() {
+    let curr_dir = match current_dir() {
+        Ok(curr_dir) => curr_dir,
+        Err(e) => {
+            VersionError::IoError(e).terminate(&mut cli::Cli::command());
+        }
+    };
+    let version_file = curr_dir.join("VERSION.toml");
+
+    let mut version = match VersionFile::load(version_file) {
         Ok(version) => version,
         Err(e) => e.terminate(&mut cli::Cli::command()),
     };
@@ -20,9 +29,11 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+
     #[test]
-    fn it_works() {
-        let result = 2 + 2;
-        assert_eq!(result, 4);
+    fn command() {
+        use clap::CommandFactory;
+        cli::Cli::command().debug_assert();
     }
 }

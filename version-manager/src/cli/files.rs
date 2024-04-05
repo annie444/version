@@ -1,7 +1,7 @@
 use crate::{
     files::TrackedFiles,
     version::{Operator, SetTypes, VersionFile},
-    VersionError,
+    VersionResult,
 };
 use clap::{value_parser, Args, Parser, Subcommand};
 use clio::ClioPath;
@@ -51,13 +51,13 @@ pub struct File {
 }
 
 impl FilesCommand {
-    pub fn run(&self, version: &mut VersionFile) -> Result<(), VersionError> {
+    pub fn run(&self, version: &mut VersionFile) -> VersionResult<()> {
         self.command.run(version)
     }
 }
 
 impl TrackFile {
-    pub fn run(&self, version: &mut VersionFile) -> Result<(), VersionError> {
+    pub fn run(&self, version: &mut VersionFile) -> VersionResult<()> {
         let track_file =
             TrackedFiles::new_from_path_and_regex(self.path.to_path_buf(), self.expr.clone());
         version.value = Some(SetTypes::NewFile(track_file));
@@ -66,14 +66,14 @@ impl TrackFile {
 }
 
 impl File {
-    pub fn run(&self, version: &mut VersionFile) -> Result<(), VersionError> {
+    pub fn run(&self, version: &mut VersionFile) -> VersionResult<()> {
         version.value = Some(SetTypes::String(self.path.to_string()));
         version.run()
     }
 }
 
 impl Files {
-    pub fn run(&self, version: &mut VersionFile) -> Result<(), VersionError> {
+    pub fn run(&self, version: &mut VersionFile) -> VersionResult<()> {
         match self {
             Files::Track(track) => {
                 version.operator = Some(Operator::AddFile);

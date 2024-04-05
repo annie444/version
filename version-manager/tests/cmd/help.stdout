@@ -1,0 +1,21 @@
+A tool for managing the version of a project
+
+Usage: version [OPTIONS] [COMMAND]
+
+Commands:
+  major     Change the major version number
+  minor     Change the minor version number
+  patch     Change the patch version number
+  alpha     Change the alpha identifier
+  beta      Change the beta identifier
+  rc        Change the release candidate identifier
+  build     Change the build identifier
+  get       Get the current version number as a full SemVer string
+  version   Get just the version number as a string with no revision or build identifiers
+  revision  Get just the revision number as a string with no build identifiers
+  file      Track and update the version number in a file
+  help      Print this message or the help of the given subcommand(s)
+
+Options:
+      --generator <GENERATOR>  Generate shell completions [possible values: bash, elvish, fish, powershell, zsh]
+  -h, --help                   Print help

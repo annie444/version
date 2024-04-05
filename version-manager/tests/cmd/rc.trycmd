@@ -1,0 +1,35 @@
+```
+$ version get
+0.1.0
+
+```
+
+```
+$ version rc set +
+0.1.0-rc
+
+```
+
+```
+$ version rc set 5
+0.1.0-rc.5
+
+```
+
+```
+$ version rc set -
+0.1.0-rc.4
+
+```
+
+```
+$ version rc get
+4
+
+```
+
+```
+$ version rc rm
+0.1.0
+
+```

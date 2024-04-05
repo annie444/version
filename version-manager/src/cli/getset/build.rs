@@ -1,6 +1,6 @@
 use crate::{
     version::{Operator, SetTypes, VersionFile},
-    VersionError,
+    VersionResult,
 };
 use clap::{builder::NonEmptyStringValueParser, Args, Parser, Subcommand};
 
@@ -13,7 +13,7 @@ pub struct GetSetBuild {
 }
 
 impl GetSetBuild {
-    pub fn run(&self, version: &mut VersionFile) -> Result<(), VersionError> {
+    pub fn run(&self, version: &mut VersionFile) -> VersionResult<()> {
         self.command.run(version)
     }
 }
@@ -27,7 +27,7 @@ pub enum GetSetBuildCommand {
 }
 
 impl GetSetBuildCommand {
-    pub fn run(&self, version: &mut VersionFile) -> Result<(), VersionError> {
+    pub fn run(&self, version: &mut VersionFile) -> VersionResult<()> {
         match self {
             GetSetBuildCommand::Get => {
                 version.operator = Some(Operator::Get);
@@ -50,7 +50,7 @@ pub struct SetBuild {
 }
 
 impl SetBuild {
-    pub fn run(&self, version: &mut VersionFile) -> Result<(), VersionError> {
+    pub fn run(&self, version: &mut VersionFile) -> VersionResult<()> {
         version.operator = Some(Operator::Set(SetTypes::String(self.value.clone())));
         version.run()
     }

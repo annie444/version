@@ -1,4 +1,4 @@
-use crate::{cli::VersionCommand, files::TrackedFiles, VersionError};
+use crate::{cli::VersionCommand, files::TrackedFiles, VersionError, VersionResult};
 use serde::{Deserialize, Serialize};
 use std::{default::Default, env::current_dir, fs::File, io::prelude::*, path::PathBuf};
 
@@ -32,7 +32,7 @@ impl Default for Version {
 }
 
 impl Version {
-    pub fn sync(&mut self) -> Result<(), VersionError> {
+    pub fn sync(&mut self) -> VersionResult<()> {
         self.sync_version_string()?;
         self.update_tracked_files()
     }
@@ -73,7 +73,7 @@ impl Version {
         revision
     }
 
-    pub fn sync_version_string(&mut self) -> Result<(), VersionError> {
+    pub fn sync_version_string(&mut self) -> VersionResult<()> {
         self.version = format!("{}.{}.{}", self.major, self.minor, self.patch);
         if let Some(a) = self.alpha {
             let mut alpha: String = "-alpha".to_string();
@@ -111,7 +111,7 @@ impl Version {
         Ok(())
     }
 
-    pub fn update_tracked_files(&mut self) -> Result<(), VersionError> {
+    pub fn update_tracked_files(&mut self) -> VersionResult<()> {
         if self.files.is_some() {
             for file in AsMut::<Vec<TrackedFiles>>::as_mut(self.files.as_mut().unwrap()).iter_mut()
             {
@@ -121,7 +121,7 @@ impl Version {
         Ok(())
     }
 
-    pub fn add_tracked_file(&mut self, file: TrackedFiles) -> Result<(), VersionError> {
+    pub fn add_tracked_file(&mut self, file: TrackedFiles) -> VersionResult<()> {
         if self.files.is_some() {
             AsMut::<Vec<TrackedFiles>>::as_mut(self.files.as_mut().unwrap()).push(file);
         } else {
@@ -130,14 +130,14 @@ impl Version {
         Ok(())
     }
 
-    pub fn remove_tracked_file(&mut self, file: PathBuf) -> Result<(), VersionError> {
+    pub fn remove_tracked_file(&mut self, file: PathBuf) -> VersionResult<()> {
         if self.files.is_some() {
             AsMut::<Vec<TrackedFiles>>::as_mut(self.files.as_mut().unwrap()).retain(|f| f != file);
         }
         Ok(())
     }
 
-    pub fn update_file(&mut self, file: PathBuf) -> Result<(), VersionError> {
+    pub fn update_file(&mut self, file: PathBuf) -> VersionResult<()> {
         if self.files.is_some() {
             for f in AsMut::<Vec<TrackedFiles>>::as_mut(self.files.as_mut().unwrap()).iter_mut() {
                 if f == file {
@@ -148,22 +148,22 @@ impl Version {
         Ok(())
     }
 
-    pub fn set_major(&mut self, value: u8) -> Result<(), VersionError> {
+    pub fn set_major(&mut self, value: u8) -> VersionResult<()> {
         self.major = value;
         self.sync()
     }
 
-    pub fn inc_major(&mut self) -> Result<(), VersionError> {
+    pub fn inc_major(&mut self) -> VersionResult<()> {
         self.major = self.major + 1;
         self.sync()
     }
 
-    pub fn dec_major(&mut self) -> Result<(), VersionError> {
+    pub fn dec_major(&mut self) -> VersionResult<()> {
         self.major = self.major - 1;
         self.sync()
     }
 
-    pub fn reset_major(&mut self) -> Result<(), VersionError> {
+    pub fn reset_major(&mut self) -> VersionResult<()> {
         self.minor = 0;
         self.patch = 0;
         self.alpha = None;
@@ -173,22 +173,22 @@ impl Version {
         self.sync()
     }
 
-    pub fn set_minor(&mut self, value: u8) -> Result<(), VersionError> {
+    pub fn set_minor(&mut self, value: u8) -> VersionResult<()> {
         self.minor = value;
         self.sync()
     }
 
-    pub fn inc_minor(&mut self) -> Result<(), VersionError> {
+    pub fn inc_minor(&mut self) -> VersionResult<()> {
         self.minor = self.minor + 1;
         self.sync()
     }
 
-    pub fn dec_minor(&mut self) -> Result<(), VersionError> {
+    pub fn dec_minor(&mut self) -> VersionResult<()> {
         self.minor = self.minor - 1;
         self.sync()
     }
 
-    pub fn reset_minor(&mut self) -> Result<(), VersionError> {
+    pub fn reset_minor(&mut self) -> VersionResult<()> {
         self.patch = 0;
         self.alpha = None;
         self.beta = None;
@@ -197,22 +197,22 @@ impl Version {
         self.sync()
     }
 
-    pub fn set_patch(&mut self, value: u8) -> Result<(), VersionError> {
+    pub fn set_patch(&mut self, value: u8) -> VersionResult<()> {
         self.patch = value;
         self.sync()
     }
 
-    pub fn inc_patch(&mut self) -> Result<(), VersionError> {
+    pub fn inc_patch(&mut self) -> VersionResult<()> {
         self.patch = self.patch + 1;
         self.sync()
     }
 
-    pub fn dec_patch(&mut self) -> Result<(), VersionError> {
+    pub fn dec_patch(&mut self) -> VersionResult<()> {
         self.patch = self.patch - 1;
         self.sync()
     }
 
-    pub fn reset_patch(&mut self) -> Result<(), VersionError> {
+    pub fn reset_patch(&mut self) -> VersionResult<()> {
         self.alpha = None;
         self.beta = None;
         self.rc = None;
@@ -220,12 +220,12 @@ impl Version {
         self.sync()
     }
 
-    pub fn set_alpha(&mut self, value: u8) -> Result<(), VersionError> {
+    pub fn set_alpha(&mut self, value: u8) -> VersionResult<()> {
         self.alpha = Some(value);
         self.sync()
     }
 
-    pub fn inc_alpha(&mut self) -> Result<(), VersionError> {
+    pub fn inc_alpha(&mut self) -> VersionResult<()> {
         self.alpha = match self.alpha {
             Some(op) => Some(op + 1),
             None => Some(0),
@@ -233,7 +233,7 @@ impl Version {
         self.sync()
     }
 
-    pub fn dec_alpha(&mut self) -> Result<(), VersionError> {
+    pub fn dec_alpha(&mut self) -> VersionResult<()> {
         self.alpha = match self.alpha {
             Some(op) => {
                 if op == 0 {
@@ -247,24 +247,24 @@ impl Version {
         self.sync()
     }
 
-    pub fn rm_alpha(&mut self) -> Result<(), VersionError> {
+    pub fn rm_alpha(&mut self) -> VersionResult<()> {
         self.alpha = None;
         self.sync()
     }
 
-    pub fn reset_alpha(&mut self) -> Result<(), VersionError> {
+    pub fn reset_alpha(&mut self) -> VersionResult<()> {
         self.beta = None;
         self.rc = None;
         self.build = None;
         self.sync()
     }
 
-    pub fn set_beta(&mut self, value: u8) -> Result<(), VersionError> {
+    pub fn set_beta(&mut self, value: u8) -> VersionResult<()> {
         self.beta = Some(value);
         self.sync()
     }
 
-    pub fn inc_beta(&mut self) -> Result<(), VersionError> {
+    pub fn inc_beta(&mut self) -> VersionResult<()> {
         self.beta = match self.beta {
             Some(op) => Some(op + 1),
             None => Some(0),
@@ -272,7 +272,7 @@ impl Version {
         self.sync()
     }
 
-    pub fn dec_beta(&mut self) -> Result<(), VersionError> {
+    pub fn dec_beta(&mut self) -> VersionResult<()> {
         self.beta = match self.beta {
             Some(op) => {
                 if op == 0 {
@@ -286,23 +286,23 @@ impl Version {
         self.sync()
     }
 
-    pub fn rm_beta(&mut self) -> Result<(), VersionError> {
+    pub fn rm_beta(&mut self) -> VersionResult<()> {
         self.beta = None;
         self.sync()
     }
 
-    pub fn reset_beta(&mut self) -> Result<(), VersionError> {
+    pub fn reset_beta(&mut self) -> VersionResult<()> {
         self.rc = None;
         self.build = None;
         self.sync()
     }
 
-    pub fn set_rc(&mut self, value: u8) -> Result<(), VersionError> {
+    pub fn set_rc(&mut self, value: u8) -> VersionResult<()> {
         self.rc = Some(value);
         self.sync()
     }
 
-    pub fn inc_rc(&mut self) -> Result<(), VersionError> {
+    pub fn inc_rc(&mut self) -> VersionResult<()> {
         self.rc = match self.rc {
             Some(op) => Some(op + 1),
             None => Some(0),
@@ -310,7 +310,7 @@ impl Version {
         self.sync()
     }
 
-    pub fn dec_rc(&mut self) -> Result<(), VersionError> {
+    pub fn dec_rc(&mut self) -> VersionResult<()> {
         self.rc = match self.rc {
             Some(op) => {
                 if op == 0 {
@@ -324,22 +324,22 @@ impl Version {
         self.sync()
     }
 
-    pub fn rm_rc(&mut self) -> Result<(), VersionError> {
+    pub fn rm_rc(&mut self) -> VersionResult<()> {
         self.rc = None;
         self.sync()
     }
 
-    pub fn reset_rc(&mut self) -> Result<(), VersionError> {
+    pub fn reset_rc(&mut self) -> VersionResult<()> {
         self.build = None;
         self.sync()
     }
 
-    pub fn set_build(&mut self, value: String) -> Result<(), VersionError> {
+    pub fn set_build(&mut self, value: String) -> VersionResult<()> {
         self.build = Some(value);
         self.sync()
     }
 
-    pub fn rm_build(&mut self) -> Result<(), VersionError> {
+    pub fn rm_build(&mut self) -> VersionResult<()> {
         self.build = None;
         self.sync()
     }
@@ -373,14 +373,7 @@ pub struct VersionFile {
 }
 
 impl VersionFile {
-    pub fn load() -> Result<Self, VersionError> {
-        let curr_dir = match current_dir() {
-            Ok(curr_dir) => curr_dir,
-            Err(e) => {
-                return Err(VersionError::IoError(e));
-            }
-        };
-        let version_file = curr_dir.join("VERSION.toml");
+    pub fn load(version_file: PathBuf) -> VersionResult<Self> {
         let ver: Version = match File::open(version_file.clone()) {
             Ok(mut file) => {
                 let mut contents = String::new();
@@ -409,13 +402,13 @@ impl VersionFile {
         })
     }
 
-    pub fn save(&mut self) -> Result<(), VersionError> {
+    pub fn save(&mut self) -> VersionResult<()> {
         self.save_version()?;
         self.save_files()?;
         Ok(())
     }
 
-    fn save_version(&self) -> Result<(), VersionError> {
+    fn save_version(&self) -> VersionResult<()> {
         let version = match toml::to_string_pretty(&self.ver) {
             Ok(v) => v,
             Err(e) => {
@@ -448,7 +441,7 @@ impl VersionFile {
         }
     }
 
-    fn save_files(&mut self) -> Result<(), VersionError> {
+    fn save_files(&mut self) -> VersionResult<()> {
         if self.ver.files.is_some() {
             for file in
                 AsMut::<Vec<TrackedFiles>>::as_mut(self.ver.files.as_mut().unwrap()).iter_mut()
@@ -459,7 +452,7 @@ impl VersionFile {
         Ok(())
     }
 
-    pub fn run(&mut self) -> Result<(), VersionError> {
+    pub fn run(&mut self) -> VersionResult<()> {
         match &self.key {
             Some(key) => match key {
                 VersionCommand::Major(_) => match &self.operator {
@@ -472,6 +465,7 @@ impl VersionFile {
                         },
                         Operator::Get => {
                             println!("{}", self.ver.major);
+
                             Ok(())
                         }
                         Operator::Reset => self.ver.reset_major(),
@@ -488,7 +482,8 @@ impl VersionFile {
                             _ => Err(VersionError::InvalidOperation),
                         },
                         Operator::Get => {
-                            println!("{}", self.ver.major);
+                            println!("{}", self.ver.minor);
+
                             Ok(())
                         }
                         Operator::Reset => self.ver.reset_minor(),
@@ -505,7 +500,8 @@ impl VersionFile {
                             _ => Err(VersionError::InvalidOperation),
                         },
                         Operator::Get => {
-                            println!("{}", self.ver.major);
+                            println!("{}", self.ver.patch);
+
                             Ok(())
                         }
                         Operator::Reset => self.ver.reset_patch(),
@@ -522,7 +518,11 @@ impl VersionFile {
                             _ => Err(VersionError::InvalidOperation),
                         },
                         Operator::Get => {
-                            println!("{}", self.ver.major);
+                            if self.ver.alpha.is_some() {
+                                println!("{}", self.ver.alpha.unwrap());
+                            } else {
+                            }
+
                             Ok(())
                         }
                         Operator::Reset => self.ver.reset_alpha(),
@@ -540,7 +540,11 @@ impl VersionFile {
                             _ => Err(VersionError::InvalidOperation),
                         },
                         Operator::Get => {
-                            println!("{}", self.ver.major);
+                            if self.ver.beta.is_some() {
+                                println!("{}", self.ver.beta.unwrap());
+                            } else {
+                            }
+
                             Ok(())
                         }
                         Operator::Reset => self.ver.reset_beta(),
@@ -558,7 +562,11 @@ impl VersionFile {
                             _ => Err(VersionError::InvalidOperation),
                         },
                         Operator::Get => {
-                            println!("{}", self.ver.major);
+                            if self.ver.rc.is_some() {
+                                println!("{}", self.ver.rc.unwrap());
+                            } else {
+                            }
+
                             Ok(())
                         }
                         Operator::Reset => self.ver.reset_rc(),
@@ -574,7 +582,8 @@ impl VersionFile {
                             _ => Err(VersionError::InvalidOperation),
                         },
                         Operator::Get => {
-                            println!("{}", self.ver.major);
+                            println!("{}", self.ver.build.clone().unwrap_or("n/a".to_string()));
+
                             Ok(())
                         }
                         Operator::Rm => self.ver.rm_build(),
@@ -584,14 +593,17 @@ impl VersionFile {
                 },
                 VersionCommand::Get => {
                     println!("{}", self.ver.version);
+
                     Ok(())
                 }
                 VersionCommand::Version => {
                     println!("{}", self.ver.get_version());
+
                     Ok(())
                 }
                 VersionCommand::Revision => {
                     println!("{}", self.ver.get_revision());
+
                     Ok(())
                 }
                 VersionCommand::File(_) => match &self.operator {

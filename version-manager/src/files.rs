@@ -1,4 +1,4 @@
-use crate::VersionError;
+use crate::{VersionError, VersionResult};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::{
@@ -40,7 +40,7 @@ impl TrackedFiles {
         }
     }
 
-    pub fn open(&mut self) -> Result<File, VersionError> {
+    pub fn open(&mut self) -> VersionResult<File> {
         let cd = match env::current_dir() {
             Ok(cd) => cd,
             Err(e) => return Err(VersionError::IoError(e)),
@@ -52,7 +52,7 @@ impl TrackedFiles {
         }
     }
 
-    pub fn open_tmp(&mut self) -> Result<File, VersionError> {
+    pub fn open_tmp(&mut self) -> VersionResult<File> {
         let cd = match env::current_dir() {
             Ok(cd) => cd,
             Err(e) => return Err(VersionError::IoError(e)),
@@ -65,7 +65,7 @@ impl TrackedFiles {
         }
     }
 
-    pub fn close(&mut self) -> Result<(), VersionError> {
+    pub fn close(&mut self) -> VersionResult<()> {
         let cd = match env::current_dir() {
             Ok(cd) => cd,
             Err(e) => return Err(VersionError::IoError(e)),
@@ -82,18 +82,18 @@ impl TrackedFiles {
         }
     }
 
-    pub fn read_lines(&mut self) -> Result<Lines<BufReader<File>>, VersionError> {
+    pub fn read_lines(&mut self) -> VersionResult<Lines<BufReader<File>>> {
         let file = self.open()?;
         let reader = BufReader::new(file);
         Ok(reader.lines())
     }
 
-    pub fn writer(&mut self) -> Result<BufWriter<File>, VersionError> {
+    pub fn writer(&mut self) -> VersionResult<BufWriter<File>> {
         let file = self.open_tmp()?;
         Ok(BufWriter::new(file))
     }
 
-    pub fn update(&mut self, version: String) -> Result<(), VersionError> {
+    pub fn update(&mut self, version: String) -> VersionResult<()> {
         let mut writer = self.writer()?;
         let regex = match Regex::new(&self.expr) {
             Ok(re) => re,

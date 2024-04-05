@@ -1,8 +1,11 @@
-use crate::cli::{
-    files::FilesCommand,
-    getset::{GetSet, GetSetBuild, GetSetRm},
+use crate::{
+    cli::{
+        files::FilesCommand,
+        getset::{GetSet, GetSetBuild, GetSetRm},
+    },
+    version::VersionFile,
+    VersionResult,
 };
-use crate::{version::VersionFile, VersionError};
 use clap::Subcommand;
 
 #[derive(Subcommand, Debug, Clone)]
@@ -34,7 +37,7 @@ pub enum VersionCommand {
 }
 
 impl VersionCommand {
-    pub fn run(&self, version: &mut VersionFile) -> Result<(), VersionError> {
+    pub fn run(&self, version: &mut VersionFile) -> VersionResult<()> {
         match self {
             VersionCommand::Major(getset) => {
                 version.key = Some(self.clone());

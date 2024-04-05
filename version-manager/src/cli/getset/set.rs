@@ -1,6 +1,6 @@
 use crate::{
     version::{Operator, SetTypes, VersionFile},
-    VersionError,
+    VersionError, VersionResult,
 };
 use clap::{builder::RangedU64ValueParser, Args, Subcommand};
 
@@ -16,7 +16,7 @@ pub struct Set {
 }
 
 impl Set {
-    pub fn run(&self, version: &mut VersionFile) -> Result<(), VersionError> {
+    pub fn run(&self, version: &mut VersionFile) -> VersionResult<()> {
         if let Some(value) = &self.value {
             version.operator = Some(Operator::Set(SetTypes::Number(*value)));
             version.run()
@@ -40,7 +40,7 @@ pub enum UpDown {
 }
 
 impl UpDown {
-    pub fn run(&self, version: &mut VersionFile) -> Result<(), VersionError> {
+    pub fn run(&self, version: &mut VersionFile) -> VersionResult<()> {
         match self {
             UpDown::Up => {
                 version.operator = Some(Operator::Set(SetTypes::AddNumber));

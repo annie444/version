@@ -1,7 +1,7 @@
 use super::Set;
 use crate::{
     version::{Operator, VersionFile},
-    VersionError,
+    VersionResult,
 };
 use clap::{Parser, Subcommand};
 
@@ -14,7 +14,7 @@ pub struct GetSetRm {
 }
 
 impl GetSetRm {
-    pub fn run(&self, version: &mut VersionFile) -> Result<(), VersionError> {
+    pub fn run(&self, version: &mut VersionFile) -> VersionResult<()> {
         self.command.run(version)
     }
 }
@@ -31,7 +31,7 @@ pub enum GetSetRmCommand {
 }
 
 impl GetSetRmCommand {
-    pub fn run(&self, version: &mut VersionFile) -> Result<(), VersionError> {
+    pub fn run(&self, version: &mut VersionFile) -> VersionResult<()> {
         match self {
             GetSetRmCommand::Get => {
                 version.operator = Some(Operator::Get);

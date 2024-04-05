@@ -1,0 +1,41 @@
+```
+$ version get
+0.1.0
+
+```
+
+```
+$ version patch set +
+0.1.1
+
+```
+
+```
+$ version patch set 5
+0.1.5
+
+```
+
+```
+$ version patch set -
+0.1.4
+
+```
+
+```
+$ version patch get
+4
+
+```
+
+```
+$ version alpha set +
+0.1.4-alpha
+
+```
+
+```
+$ version patch reset
+0.1.4
+
+```

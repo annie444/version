@@ -119,6 +119,7 @@ fn target(target: String, up: bool) -> Result<(), DynError> {
     dist_manpage(Some(&target_dir))?;
     dist_readme(Some(&target_dir))?;
     dist_license(Some(&target_dir))?;
+    dist_changelog(Some(&target_dir))?;
     package_release(Some(&target), up)?;
 
     Ok(())
@@ -203,6 +204,7 @@ fn package_targets(up: bool) -> Result<(), DynError> {
         dist_manpage(Some(&format!("{}/{}", target, PACKAGE_NAME)))?;
         dist_readme(Some(&format!("{}/{}", target, PACKAGE_NAME)))?;
         dist_license(Some(&format!("{}/{}", target, PACKAGE_NAME)))?;
+        dist_changelog(Some(&format!("{}/{}", target, PACKAGE_NAME)))?;
 
         package_release(Some(target), up)?;
     }
@@ -248,6 +250,7 @@ fn dist_unknown() -> Result<(), DynError> {
     dist_manpage(Some(target))?;
     dist_readme(Some(target))?;
     dist_license(Some(target))?;
+    dist_changelog(Some(target))?;
 
     Ok(())
 }
@@ -272,6 +275,7 @@ fn dist() -> Result<(), DynError> {
     dist_manpage(None)?;
     dist_readme(None)?;
     dist_license(None)?;
+    dist_changelog(None)?;
 
     Ok(())
 }
@@ -297,6 +301,7 @@ fn package(up: bool) -> Result<(), DynError> {
     dist_manpage(Some(PACKAGE_NAME))?;
     dist_readme(Some(PACKAGE_NAME))?;
     dist_license(Some(PACKAGE_NAME))?;
+    dist_changelog(Some(PACKAGE_NAME))?;
 
     package_release(None, up)?;
     Ok(())
@@ -472,6 +477,15 @@ fn dist_readme(target: Option<&str>) -> Result<(), DynError> {
 }
 
 fn dist_changelog(target: Option<&str>) -> Result<(), DynError> {
+    match std::env::set_current_dir(project_root()) {
+        Ok(_) => {}
+        Err(e) => {
+            return Err((
+                "Unable to cd into the project root".to_string(),
+                Box::new(e),
+            ))
+        }
+    };
     let status = match Command::new("auto-changelog")
         .stdout(Stdio::null())
         .status()
@@ -535,7 +549,7 @@ fn dist_license(target: Option<&str>) -> Result<(), DynError> {
             return Err((
                 format!(
                     "Error when copying {:?} to {:?}",
-                    project_root().join("LICENSE.md"),
+                    project_root().join("LICENSE"),
                     dist_dir(target).join("doc/LICENSE"),
                 ),
                 Box::new(e),
@@ -544,15 +558,15 @@ fn dist_license(target: Option<&str>) -> Result<(), DynError> {
     };
 
     match fs::copy(
-        project_root().join("LICENSE.md"),
-        project_root().join(CRATE_NAME).join("LICENSE.md"),
+        project_root().join("LICENSE"),
+        project_root().join(CRATE_NAME).join("LICENSE"),
     ) {
         Ok(_) => Ok(()),
         Err(e) => Err((
             format!(
                 "Error when copying {:?} to {:?}",
-                project_root().join("LICENSE.md"),
-                project_root().join(CRATE_NAME).join("LICENSE.md"),
+                project_root().join("LICENSE"),
+                project_root().join(CRATE_NAME).join("LICENSE"),
             ),
             Box::new(e),
         )),

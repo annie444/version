@@ -645,8 +645,11 @@ fn generate_rpm(target: Option<usize>) -> Result<(), DynError> {
             .arg(CRATE_NAME)
             .arg("--output")
             .arg(format!(
-                "{}/",
-                dist_dir(Some(&TARGETS[tgt])).to_string_lossy()
+                "{}/{}-v{}-{}.rpm",
+                dist_dir(Some(&TARGETS[tgt])).to_string_lossy(),
+                PACKAGE_NAME,
+                env!("CARGO_PKG_VERSION"),
+                &TARGETS[tgt]
             ))
             .stdout(Stdio::null())
             .status()
@@ -655,8 +658,12 @@ fn generate_rpm(target: Option<usize>) -> Result<(), DynError> {
             Err(e) => {
                 return Err((
                     format!(
-                        "Failed when running 'cargo generate-rpm --arch {} --package {}'",
-                        ARCH[tgt], CRATE_NAME
+                        "Failed when running 'cargo generate-rpm --arch {} --package {} --output {}/{}-v{}-{}.rpm'",
+                        ARCH[tgt], CRATE_NAME,
+                        dist_dir(Some(&TARGETS[tgt])).to_string_lossy(),
+                        PACKAGE_NAME,
+                        env!("CARGO_PKG_VERSION"),
+                        &TARGETS[tgt]
                     ),
                     Box::new(e),
                 ))
@@ -703,7 +710,13 @@ fn generate_deb(target: Option<&str>) -> Result<(), DynError> {
             .arg(CRATE_NAME)
             .arg("--no-build")
             .arg("--output")
-            .arg(format!("{}/", dist_dir(target).to_string_lossy()))
+            .arg(format!(
+                "{}/{}-v{}-{}.deb",
+                dist_dir(target).to_string_lossy(),
+                PACKAGE_NAME,
+                env!("CARGO_PKG_VERSION"),
+                tgt
+            ))
             .stdout(Stdio::null())
             .status()
         {
@@ -711,8 +724,12 @@ fn generate_deb(target: Option<&str>) -> Result<(), DynError> {
             Err(e) => {
                 return Err((
                     format!(
-                        "Failed when running 'cargo deb --target {} --package {} --no-build'",
-                        tgt, CRATE_NAME
+                        "Failed when running 'cargo deb --target {} --package {} --no-build --output {}/{}-v{}-{}.deb'",
+                        tgt, CRATE_NAME,
+                        dist_dir(target).to_string_lossy(),
+                        PACKAGE_NAME,
+                        env!("CARGO_PKG_VERSION"),
+                        tgt
                     ),
                     Box::new(e),
                 ))
@@ -757,6 +774,8 @@ fn package_release(target: Option<&str>, index: Option<usize>, up: bool) -> Resu
     };
 
     let package = format!("{}-v{}-{}.tar.gz", PACKAGE_NAME, version, host);
+    let package_rpm = format!("{}-v{}-{}.rpm", PACKAGE_NAME, version, host);
+    let package_deb = format!("{}-v{}-{}.deb", PACKAGE_NAME, version, host);
 
     match std::env::set_current_dir(dist_dir(target)) {
         Ok(_) => {}
@@ -803,6 +822,29 @@ fn package_release(target: Option<&str>, index: Option<usize>, up: bool) -> Resu
     generate_deb(target)?;
 
     if up {
+        match target {
+            Some(tgt) => publish(
+                version.to_string(),
+                format!("{}/{}", dist_dir(Some(tgt)).to_string_lossy(), package_rpm),
+            )?,
+            None => publish(
+                version.to_string(),
+                format!(
+                    "{}/*.rpm",
+                    dist_dir(None).join("generate-rpm").to_string_lossy()
+                ),
+            )?,
+        }
+        match target {
+            Some(tgt) => publish(
+                version.to_string(),
+                format!("{}/{}", dist_dir(Some(tgt)).to_string_lossy(), package_deb),
+            )?,
+            None => publish(
+                version.to_string(),
+                format!("{}/*.deb", dist_dir(None).join("debian").to_string_lossy()),
+            )?,
+        }
         publish(version.to_string(), package)?;
     }
 
@@ -813,6 +855,7 @@ fn publish(version: String, file: String) -> Result<(), DynError> {
     let status = match Command::new("gh")
         .arg("release")
         .arg("upload")
+        .arg("--clobber")
         .arg(format!("v{}", version))
         .arg(file.clone())
         .stdout(Stdio::null())

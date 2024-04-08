@@ -22,17 +22,21 @@ fn main() {
 
 fn try_main() -> Result<(), DynError> {
     let task: Vec<String> = env::args().collect();
-    match task[1].as_str() {
-        "dist" => dist()?,
-        "target" => target(task[2].clone(), false)?,
-        "targets" => targets()?,
-        "package" => package(false)?,
-        "dist-unk" => dist_unknown()?,
-        "package-unk" => package_unknown(false)?,
-        "package-targets" => package_targets(false)?,
-        "publish-all" => package_targets(true)?,
-        "publish" => target(task[2].clone(), true)?,
-        _ => print_help(),
+    if task.len() < 2 {
+        print_help()
+    } else {
+        match task[1].as_str() {
+            "dist" => dist()?,
+            "target" => target(task[2].clone(), false)?,
+            "targets" => targets()?,
+            "package" => package(false)?,
+            "dist-unk" => dist_unknown()?,
+            "package-unk" => package_unknown(false)?,
+            "package-targets" => package_targets(false)?,
+            "publish-all" => package_targets(true)?,
+            "publish" => target(task[2].clone(), true)?,
+            _ => print_help(),
+        }
     }
     Ok(())
 }
@@ -58,11 +62,6 @@ TRIPLES:
     aarch64-apple-darwin
     aarch64-unknown-linux-gnu
     aarch64-unknown-linux-musl
-    arm-unknown-linux-gnueabi
-    arm-unknown-linux-gnueabihf
-    arm-unknown-linux-musleabihf
-    armv7-unknown-linux-gnueabihf
-    armv7-unknown-linux-musleabihf
     i686-unknown-linux-gnu
     i686-unknown-linux-musl
     x86_64-apple-darwin
@@ -72,20 +71,19 @@ TRIPLES:
     )
 }
 
-static TARGETS: [&'static str; 13] = [
+static TARGETS: [&'static str; 8] = [
     "aarch64-apple-darwin",
     "aarch64-unknown-linux-gnu",
     "aarch64-unknown-linux-musl",
-    "arm-unknown-linux-gnueabi",
-    "arm-unknown-linux-gnueabihf",
-    "arm-unknown-linux-musleabihf",
-    "armv7-unknown-linux-gnueabihf",
-    "armv7-unknown-linux-musleabihf",
     "i686-unknown-linux-gnu",
     "i686-unknown-linux-musl",
     "x86_64-apple-darwin",
     "x86_64-unknown-linux-gnu",
     "x86_64-unknown-linux-musl",
+];
+
+static ARCH: [&'static str; 8] = [
+    "aarch64", "aarch64", "aarch64", "i686", "i686", "x86_64", "x86_64", "x86_64",
 ];
 
 fn targets() -> Result<(), DynError> {
@@ -120,7 +118,16 @@ fn target(target: String, up: bool) -> Result<(), DynError> {
     dist_readme(Some(&target_dir))?;
     dist_license(Some(&target_dir))?;
     dist_changelog(Some(&target_dir))?;
-    package_release(Some(&target), up)?;
+    let index = match TARGETS.binary_search(&target.as_str()) {
+        Ok(idx) => idx,
+        Err(_) => {
+            return Err((
+                format!("Unable to locate index of {}", &target),
+                Box::new(std::fmt::Error),
+            ))
+        }
+    };
+    package_release(Some(&target), Some(index), up)?;
 
     Ok(())
 }
@@ -180,7 +187,7 @@ fn install_target(target: &str) -> Result<(), DynError> {
 }
 
 fn package_targets(up: bool) -> Result<(), DynError> {
-    for target in TARGETS {
+    for (i, target) in TARGETS.into_iter().enumerate() {
         if dist_dir(Some(&format!("{}/{}", target, PACKAGE_NAME))).exists() {
             if dist_dir(Some(&format!("{}/{}", target, PACKAGE_NAME))).is_file() {
                 let _ = fs::remove_file(&dist_dir(Some(&format!("{}/{}", target, PACKAGE_NAME))));
@@ -192,21 +199,22 @@ fn package_targets(up: bool) -> Result<(), DynError> {
             Err(e) => {
                 return Err((
                     format!(
-                        "Error when creating 'dist/{}' dir",
-                        &format!("{}/{}", target, PACKAGE_NAME)
+                        "Error when creating {:?} dir",
+                        dist_dir(Some(&format!("{}/{}", target, PACKAGE_NAME)))
                     ),
                     Box::new(e),
                 ))
             }
         };
 
+        install_target(&target)?;
         dist_binary(Some(target), Some(PACKAGE_NAME))?;
         dist_manpage(Some(&format!("{}/{}", target, PACKAGE_NAME)))?;
         dist_readme(Some(&format!("{}/{}", target, PACKAGE_NAME)))?;
         dist_license(Some(&format!("{}/{}", target, PACKAGE_NAME)))?;
         dist_changelog(Some(&format!("{}/{}", target, PACKAGE_NAME)))?;
 
-        package_release(Some(target), up)?;
+        package_release(Some(target), Some(i), up)?;
     }
     Ok(())
 }
@@ -258,7 +266,16 @@ fn dist_unknown() -> Result<(), DynError> {
 fn package_unknown(up: bool) -> Result<(), DynError> {
     let target = &format!("{}-unknown-none", std::env::consts::ARCH);
     dist_unknown()?;
-    package_release(Some(target), up)?;
+    let index = match TARGETS.binary_search(&target.as_str()) {
+        Ok(idx) => idx,
+        Err(_) => {
+            return Err((
+                format!("Unable to locate index of {}", &target),
+                Box::new(std::fmt::Error),
+            ))
+        }
+    };
+    package_release(Some(target), Some(index), up)?;
     Ok(())
 }
 
@@ -303,22 +320,32 @@ fn package(up: bool) -> Result<(), DynError> {
     dist_license(Some(PACKAGE_NAME))?;
     dist_changelog(Some(PACKAGE_NAME))?;
 
-    package_release(None, up)?;
+    package_release(None, None, up)?;
     Ok(())
 }
 
 fn dist_binary(target: Option<&str>, output: Option<&str>) -> Result<(), DynError> {
     let cargo = env::var("CARGO").unwrap_or_else(|_| "cargo".to_string());
     let status = match target {
-        Some(tar) => match Command::new("cross")
+        Some(tar) => match Command::new(cargo)
             .current_dir(project_root())
-            .args(&["build", "--target", tar, "--release"])
+            .args(&[
+                "build",
+                "--package",
+                CRATE_NAME,
+                "--target",
+                tar,
+                "--release",
+            ])
             .status()
         {
             Ok(stat) => stat,
             Err(e) => {
                 return Err((
-                    format!("Error in command 'cargo build --target {} --release'", tar),
+                    format!(
+                        "Error in command 'cargo build --package {} --target {} --release'",
+                        CRATE_NAME, tar
+                    ),
                     Box::new(e),
                 ))
             }
@@ -345,13 +372,20 @@ fn dist_binary(target: Option<&str>, output: Option<&str>) -> Result<(), DynErro
         ));
     }
 
-    let dst = project_root().join(format!("target/release/{}", CRATE_NAME));
+    let dst = if let Some(tar) = target {
+        project_root().join(format!("target/{}/release/{}", tar, CRATE_NAME))
+    } else {
+        project_root().join(format!("target/release/{}", CRATE_NAME))
+    };
     if !dist_dir(target).exists() {
         match fs::create_dir_all(dist_dir(target)) {
             Ok(_) => {}
             Err(e) => {
                 return Err((
-                    format!("Error when creating subdirectory {:?}", dist_dir(target)),
+                    format!(
+                        "[355] Error when creating subdirectory {:?}",
+                        dist_dir(target)
+                    ),
                     Box::new(e),
                 ))
             }
@@ -367,41 +401,11 @@ fn dist_binary(target: Option<&str>, output: Option<&str>) -> Result<(), DynErro
         Ok(_) => {}
         Err(e) => {
             return Err((
-                format!("Error when copying {:?} to {:?}", dst, out_dir),
+                format!("[371] Error when copying {:?} to {:?}", dst, out_dir),
                 Box::new(e),
             ))
         }
     };
-
-    if Command::new("strip")
-        .arg("--version")
-        .stdout(Stdio::null())
-        .status()
-        .is_ok()
-    {
-        eprintln!("stripping the binary");
-        let status = match Command::new("strip")
-            .arg("--strip-all")
-            .arg(&out_dir.clone())
-            .status()
-        {
-            Ok(stat) => stat,
-            Err(e) => {
-                return Err((
-                    format!(
-                        "Error when running command 'strip --strip-all {:?}",
-                        out_dir
-                    ),
-                    Box::new(e),
-                ))
-            }
-        };
-        if !status.success() {
-            return Err(("strip failed".to_string(), Box::new(std::fmt::Error)));
-        }
-    } else {
-        eprintln!("no `strip` utility found")
-    }
 
     Ok(())
 }
@@ -630,7 +634,122 @@ fn get_host() -> Result<String, DynError> {
     }
 }
 
-fn package_release(target: Option<&str>, up: bool) -> Result<(), DynError> {
+fn generate_rpm(target: Option<usize>) -> Result<(), DynError> {
+    let status = match target {
+        Some(tgt) => match Command::new("cargo")
+            .current_dir(project_root())
+            .arg("generate-rpm")
+            .arg("--arch")
+            .arg(ARCH[tgt])
+            .arg("--package")
+            .arg(CRATE_NAME)
+            .arg("--output")
+            .arg(format!(
+                "{}/",
+                dist_dir(Some(&TARGETS[tgt])).to_string_lossy()
+            ))
+            .stdout(Stdio::null())
+            .status()
+        {
+            Ok(stat) => stat,
+            Err(e) => {
+                return Err((
+                    format!(
+                        "Failed when running 'cargo generate-rpm --arch {} --package {}'",
+                        ARCH[tgt], CRATE_NAME
+                    ),
+                    Box::new(e),
+                ))
+            }
+        },
+        None => match Command::new("cargo")
+            .current_dir(project_root())
+            .arg("generate-rpm")
+            .arg("--package")
+            .arg(CRATE_NAME)
+            .stdout(Stdio::null())
+            .status()
+        {
+            Ok(stat) => stat,
+            Err(e) => {
+                return Err((
+                    format!(
+                        "Failed when running 'cargo generate-rpm --package {}'",
+                        CRATE_NAME
+                    ),
+                    Box::new(e),
+                ))
+            }
+        },
+    };
+
+    if !status.success() {
+        return Err((
+            "Command 'cargo generate-rpm ...' exited unsuccessfully".to_string(),
+            Box::new(std::fmt::Error),
+        ));
+    }
+    Ok(())
+}
+
+fn generate_deb(target: Option<&str>) -> Result<(), DynError> {
+    let status = match target {
+        Some(tgt) => match Command::new("cargo")
+            .current_dir(project_root())
+            .arg("deb")
+            .arg("--target")
+            .arg(tgt)
+            .arg("--package")
+            .arg(CRATE_NAME)
+            .arg("--no-build")
+            .arg("--output")
+            .arg(format!("{}/", dist_dir(target).to_string_lossy()))
+            .stdout(Stdio::null())
+            .status()
+        {
+            Ok(stat) => stat,
+            Err(e) => {
+                return Err((
+                    format!(
+                        "Failed when running 'cargo deb --target {} --package {} --no-build'",
+                        tgt, CRATE_NAME
+                    ),
+                    Box::new(e),
+                ))
+            }
+        },
+        None => match Command::new("cargo")
+            .current_dir(project_root())
+            .arg("deb")
+            .arg("--package")
+            .arg(CRATE_NAME)
+            .arg("--no-build")
+            .stdout(Stdio::null())
+            .status()
+        {
+            Ok(stat) => stat,
+            Err(e) => {
+                return Err((
+                    format!(
+                        "Failed when running 'cargo deb --package {} --no-build'",
+                        CRATE_NAME
+                    ),
+                    Box::new(e),
+                ))
+            }
+        },
+    };
+
+    if !status.success() {
+        return Err((
+            "Command 'cargo deb ...' exited unsuccessfully".to_string(),
+            Box::new(std::fmt::Error),
+        ));
+    }
+    Ok(())
+}
+
+fn package_release(target: Option<&str>, index: Option<usize>, up: bool) -> Result<(), DynError> {
     let version = env!("CARGO_PKG_VERSION");
     let host = match target {
         Some(target) => target.to_owned(),
@@ -679,6 +798,9 @@ fn package_release(target: Option<&str>, up: bool) -> Result<(), DynError> {
             Box::new(std::fmt::Error),
         ));
     }
+
+    generate_rpm(index)?;
+    generate_deb(target)?;
 
     if up {
         publish(version.to_string(), package)?;

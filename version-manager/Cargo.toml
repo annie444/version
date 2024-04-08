@@ -1,6 +1,6 @@
 [package]
 name = "version-manager"
-version = "1.2.0"
+version = "2.0.0"
 edition = "2021"
 description = "A simple version manager for your projects."
 license = "GPL-3.0-or-later"
@@ -15,6 +15,9 @@ categories = [
   "development-tools::build-utils",
 ]
 default-run = "version"
+
+[profile.release]
+strip = "symbols"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [dependencies]
@@ -44,263 +47,32 @@ assets = [
     "755",
   ],
   [
-    "../target/dist/manpages/version.1",
-    "/usr/share/man/man1/version.1",
+    "../target/dist/manpages/*",
+    "/usr/share/man/man1/",
     "644",
   ],
   [
-    "../target/dist/manpages/version-get.1",
-    "/usr/share/man/man1/version-get.1",
-    "644",
-  ],
-  [
-    "../target/dist/manpages/version-rc.1",
-    "/usr/share/man/man1/version-rc.1",
-    "644",
-  ],
-  [
-    "../target/dist/manpages/version-rc-set.1",
-    "/usr/share/man/man1/version-rc-set.1",
-    "644",
-  ],
-  [
-    "../target/dist/manpages/version-rc-set--.1",
-    "/usr/share/man/man1/version-rc-set--.1",
-    "644",
-  ],
-  [
-    "../target/dist/manpages/version-rc-set-+.1",
-    "/usr/share/man/man1/version-rc-set-+.1",
-    "644",
-  ],
-  [
-    "../target/dist/manpages/version-rc-rm.1",
-    "/usr/share/man/man1/version-rc-rm.1",
-    "644",
-  ],
-  [
-    "../target/dist/manpages/version-rc-get.1",
-    "/usr/share/man/man1/version-rc-get.1",
-    "644",
-  ],
-  [
-    "../target/dist/manpages/version-beta-set-+.1",
-    "/usr/share/man/man1/version-beta-set-+.1",
-    "644",
-  ],
-  [
-    "../target/dist/manpages/version-beta.1",
-    "/usr/share/man/man1/version-beta.1",
-    "644",
-  ],
-  [
-    "../target/dist/manpages/version-beta-set.1",
-    "/usr/share/man/man1/version-beta-set.1",
-    "644",
-  ],
-  [
-    "../target/dist/manpages/version-beta-set--.1",
-    "/usr/share/man/man1/version-beta-set--.1",
-    "644",
-  ],
-  [
-    "../target/dist/manpages/version-beta-set-+.1",
-    "/usr/share/man/man1/version-beta-set-+.1",
-    "644",
-  ],
-  [
-    "../target/dist/manpages/version-beta-rm.1",
-    "/usr/share/man/man1/version-beta-rm.1",
-    "644",
-  ],
-  [
-    "../target/dist/manpages/version-beta-get.1",
-    "/usr/share/man/man1/version-beta-get.1",
-    "644",
-  ],
-  [
-    "../target/dist/manpages/version-beta-set-+.1",
-    "/usr/share/man/man1/version-beta-set-+.1",
-    "644",
-  ],
-  [
-    "../target/dist/manpages/version-alpha.1",
-    "/usr/share/man/man1/version-alpha.1",
-    "644",
-  ],
-  [
-    "../target/dist/manpages/version-alpha-set.1",
-    "/usr/share/man/man1/version-alpha-set.1",
-    "644",
-  ],
-  [
-    "../target/dist/manpages/version-alpha-set--.1",
-    "/usr/share/man/man1/version-alpha-set--.1",
-    "644",
-  ],
-  [
-    "../target/dist/manpages/version-alpha-set-+.1",
-    "/usr/share/man/man1/version-alpha-set-+.1",
-    "644",
-  ],
-  [
-    "../target/dist/manpages/version-alpha-rm.1",
-    "/usr/share/man/man1/version-alpha-rm.1",
-    "644",
-  ],
-  [
-    "../target/dist/manpages/version-alpha-get.1",
-    "/usr/share/man/man1/version-alpha-get.1",
-    "644",
-  ],
-  [
-    "../target/dist/manpages/version-alpha-set-+.1",
-    "/usr/share/man/man1/version-alpha-set-+.1",
-    "644",
-  ],
-  [
-    "../target/dist/manpages/version-patch.1",
-    "/usr/share/man/man1/version-patch.1",
-    "644",
-  ],
-  [
-    "../target/dist/manpages/version-patch-set.1",
-    "/usr/share/man/man1/version-patch-set.1",
-    "644",
-  ],
-  [
-    "../target/dist/manpages/version-patch-set--.1",
-    "/usr/share/man/man1/version-patch-set--.1",
-    "644",
-  ],
-  [
-    "../target/dist/manpages/version-patch-set-+.1",
-    "/usr/share/man/man1/version-patch-set-+.1",
-    "644",
-  ],
-  [
-    "../target/dist/manpages/version-patch-reset.1",
-    "/usr/share/man/man1/version-patch-reset.1",
-    "644",
-  ],
-  [
-    "../target/dist/manpages/version-patch-get.1",
-    "/usr/share/man/man1/version-patch-get.1",
-    "644",
-  ],
-  [
-    "../target/dist/manpages/version-patch-set-+.1",
-    "/usr/share/man/man1/version-patch-set-+.1",
-    "644",
-  ],
-  [
-    "../target/dist/manpages/version-minor.1",
-    "/usr/share/man/man1/version-minor.1",
-    "644",
-  ],
-  [
-    "../target/dist/manpages/version-minor-set.1",
-    "/usr/share/man/man1/version-minor-set.1",
-    "644",
-  ],
-  [
-    "../target/dist/manpages/version-minor-set--.1",
-    "/usr/share/man/man1/version-minor-set--.1",
-    "644",
-  ],
-  [
-    "../target/dist/manpages/version-minor-set-+.1",
-    "/usr/share/man/man1/version-minor-set-+.1",
-    "644",
-  ],
-  [
-    "../target/dist/manpages/version-minor-reset.1",
-    "/usr/share/man/man1/version-minor-reset.1",
-    "644",
-  ],
-  [
-    "../target/dist/manpages/version-minor-get.1",
-    "/usr/share/man/man1/version-minor-get.1",
-    "644",
-  ],
-  [
-    "../target/dist/manpages/version-minor-set-+.1",
-    "/usr/share/man/man1/version-minor-set-+.1",
-    "644",
-  ],
-  [
-    "../target/dist/manpages/version-major.1",
-    "/usr/share/man/man1/version-major.1",
-    "644",
-  ],
-  [
-    "../target/dist/manpages/version-major-set.1",
-    "/usr/share/man/man1/version-major-set.1",
-    "644",
-  ],
-  [
-    "../target/dist/manpages/version-major-set--.1",
-    "/usr/share/man/man1/version-major-set--.1",
-    "644",
-  ],
-  [
-    "../target/dist/manpages/version-major-set-+.1",
-    "/usr/share/man/man1/version-major-set-+.1",
-    "644",
-  ],
-  [
-    "../target/dist/manpages/version-major-reset.1",
-    "/usr/share/man/man1/version-major-reset.1",
-    "644",
-  ],
-  [
-    "../target/dist/manpages/version-major-get.1",
-    "/usr/share/man/man1/version-major-get.1",
-    "644",
-  ],
-  [
-    "../target/dist/manpages/version-major-set-+.1",
-    "/usr/share/man/man1/version-major-set-+.1",
-    "644",
-  ],
-  [
-    "../target/dist/manpages/version-file.1",
-    "/usr/share/man/man1/version-file.1",
-    "644",
-  ],
-  [
-    "../target/dist/manpages/version-file-update.1",
-    "/usr/share/man/man1/version-file-update.1",
-    "644",
-  ],
-  [
-    "../target/dist/manpages/version-file-update-all.1",
-    "/usr/share/man/man1/version-file-update-all.1",
-    "644",
-  ],
-  [
-    "../target/dist/manpages/version-file-rm.1",
-    "/usr/share/man/man1/version-file-rm.1",
-    "644",
-  ],
-  [
-    "../target/dist/manpages/version-file-track.1",
-    "/usr/share/man/man1/version-file-track.1",
-    "644",
-  ],
-  [
-    "../target/dist/doc/README",
-    "/usr/share/doc/version/README",
-    "644",
-  ],
-  [
-    "../target/dist/doc/CHANGELOG",
-    "/usr/share/doc/version/CHANGELOG",
-    "644",
-  ],
-  [
-    "../target/dist/doc/LICENSE",
-    "/usr/share/doc/version/LICENSE",
+    "../target/dist/doc/*",
+    "/usr/share/doc/version/",
     "644",
   ],
 ]
+
+[package.metadata.generate-rpm]
+name = "version"
+url = "https://github.com/annie444/version.git"
+
+[[package.metadata.generate-rpm.assets]]
+source = "../target/dist/version"
+dest = "/usr/bin/"
+mode = "755"
+
+[[package.metadata.generate-rpm.assets]]
+source = "../target/dist/manpages/*"
+dest =  "/usr/share/man/man1/"
+mode = "644"
+
+[[package.metadata.generate-rpm.assets]]
+source = "../target/dist/doc/*"
+dest = "/usr/share/doc/version/"
+mode = "644"

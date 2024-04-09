@@ -818,6 +818,30 @@ fn package_release(target: Option<&str>, index: Option<usize>, up: bool) -> Resu
         ));
     }
 
+    if let Some(tar) = target {
+        match fs_extra::dir::copy(
+            dist_dir(None).join(format!("{}/{}", tar, PACKAGE_NAME)),
+            dist_dir(None),
+            &fs_extra::dir::CopyOptions::new()
+                .overwrite(true)
+                .skip_exist(false)
+                .copy_inside(false)
+                .content_only(true),
+        ) {
+            Ok(_) => {}
+            Err(e) => {
+                return Err((
+                    format!(
+                        "Error when copying {:?} to {:?}",
+                        dist_dir(None).join(format!("{}/{}", tar, PACKAGE_NAME)),
+                        dist_dir(None)
+                    ),
+                    Box::new(e),
+                ))
+            }
+        }
+    }
+
     generate_rpm(index)?;
     generate_deb(target)?;
 

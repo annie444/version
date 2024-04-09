@@ -1,6 +1,6 @@
 use clap::{CommandFactory, Parser};
 use std::env::current_dir;
-use version_manager::{cli, version::VersionFile, VersionError};
+use version_manager::{cli, version::VersionFile, CommandRun, VersionError};
 
 fn main() {
     let args = cli::Cli::parse();

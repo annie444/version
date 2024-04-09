@@ -8,6 +8,10 @@ use clap::{
 };
 use core::fmt::Display;
 
+pub trait CommandRun {
+    fn run(&self, version: &mut version::VersionFile) -> VersionResult<()>;
+}
+
 #[derive(Debug)]
 pub enum VersionError {
     IoError(std::io::Error),

@@ -3,8 +3,8 @@ use crate::{
         files::FilesCommand,
         getset::{GetSet, GetSetBuild, GetSetRm},
     },
-    version::VersionFile,
-    VersionResult,
+    version::{run, VersionFile},
+    CommandRun, VersionResult,
 };
 use clap::Subcommand;
 
@@ -36,8 +36,8 @@ pub enum VersionCommand {
     File(FilesCommand),
 }
 
-impl VersionCommand {
-    pub fn run(&self, version: &mut VersionFile) -> VersionResult<()> {
+impl CommandRun for VersionCommand {
+    fn run(&self, version: &mut VersionFile) -> VersionResult<()> {
         match self {
             VersionCommand::Major(getset) => {
                 version.key = Some(self.clone());
@@ -69,7 +69,7 @@ impl VersionCommand {
             }
             VersionCommand::Get => {
                 version.key = Some(self.clone());
-                version.run()
+                run(version)
             }
             VersionCommand::File(file_cmd) => {
                 version.key = Some(self.clone());
@@ -77,11 +77,11 @@ impl VersionCommand {
             }
             VersionCommand::Version => {
                 version.key = Some(self.clone());
-                version.run()
+                run(version)
             }
             VersionCommand::Revision => {
                 version.key = Some(self.clone());
-                version.run()
+                run(version)
             }
         }
     }

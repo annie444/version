@@ -1,7 +1,7 @@
 use crate::{
     files::TrackedFiles,
-    version::{Operator, SetTypes, VersionFile},
-    VersionResult,
+    version::{run, Operator, SetTypes, VersionFile},
+    CommandRun, VersionResult,
 };
 use clap::{value_parser, Args, Parser, Subcommand};
 use clio::ClioPath;
@@ -50,30 +50,30 @@ pub struct File {
     pub path: ClioPath,
 }
 
-impl FilesCommand {
-    pub fn run(&self, version: &mut VersionFile) -> VersionResult<()> {
+impl CommandRun for FilesCommand {
+    fn run(&self, version: &mut VersionFile) -> VersionResult<()> {
         self.command.run(version)
     }
 }
 
-impl TrackFile {
-    pub fn run(&self, version: &mut VersionFile) -> VersionResult<()> {
+impl CommandRun for TrackFile {
+    fn run(&self, version: &mut VersionFile) -> VersionResult<()> {
         let track_file =
             TrackedFiles::new_from_path_and_regex(self.path.to_path_buf(), self.expr.clone());
         version.value = Some(SetTypes::NewFile(track_file));
-        version.run()
+        run(version)
     }
 }
 
-impl File {
-    pub fn run(&self, version: &mut VersionFile) -> VersionResult<()> {
+impl CommandRun for File {
+    fn run(&self, version: &mut VersionFile) -> VersionResult<()> {
         version.value = Some(SetTypes::String(self.path.to_string()));
-        version.run()
+        run(version)
     }
 }
 
-impl Files {
-    pub fn run(&self, version: &mut VersionFile) -> VersionResult<()> {
+impl CommandRun for Files {
+    fn run(&self, version: &mut VersionFile) -> VersionResult<()> {
         match self {
             Files::Track(track) => {
                 version.operator = Some(Operator::AddFile);
@@ -89,11 +89,11 @@ impl Files {
             }
             Files::UpdateAll => {
                 version.operator = Some(Operator::UpdateAll);
-                version.run()
+                run(version)
             }
             Files::List => {
                 version.operator = Some(Operator::ListFiles);
-                version.run()
+                run(version)
             }
         }
     }

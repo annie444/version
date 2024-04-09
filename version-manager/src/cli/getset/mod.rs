@@ -7,8 +7,8 @@ pub use rm::GetSetRm;
 pub use set::Set;
 
 use crate::{
-    version::{Operator, VersionFile},
-    VersionResult,
+    version::{run, Operator, VersionFile},
+    CommandRun, VersionResult,
 };
 use clap::{Parser, Subcommand};
 
@@ -20,8 +20,8 @@ pub struct GetSet {
     pub command: GetSetCommand,
 }
 
-impl GetSet {
-    pub fn run(&self, version: &mut VersionFile) -> VersionResult<()> {
+impl CommandRun for GetSet {
+    fn run(&self, version: &mut VersionFile) -> VersionResult<()> {
         self.command.run(version)
     }
 }
@@ -37,17 +37,17 @@ pub enum GetSetCommand {
     Reset,
 }
 
-impl GetSetCommand {
-    pub fn run(&self, version: &mut VersionFile) -> VersionResult<()> {
+impl CommandRun for GetSetCommand {
+    fn run(&self, version: &mut VersionFile) -> VersionResult<()> {
         match self {
             GetSetCommand::Get => {
                 version.operator = Some(Operator::Get);
-                version.run()
+                run(version)
             }
             GetSetCommand::Set(set) => set.run(version),
             GetSetCommand::Reset => {
                 version.operator = Some(Operator::Reset);
-                version.run()
+                run(version)
             }
         }
     }

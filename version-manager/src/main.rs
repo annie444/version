@@ -1,5 +1,5 @@
 use clap::{CommandFactory, Parser};
-use version_manager::{cli, version::VersionFile, VersionError};
+use version_manager::{cli, version::VersionFile, CommandRun, VersionError};
 
 use std::env::current_dir;
 fn main() {

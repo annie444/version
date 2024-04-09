@@ -451,201 +451,201 @@ impl VersionFile {
         }
         Ok(())
     }
+}
 
-    pub fn run(&mut self) -> VersionResult<()> {
-        match &self.key {
-            Some(key) => match key {
-                VersionCommand::Major(_) => match &self.operator {
-                    Some(op) => match op {
-                        Operator::Set(set) => match set {
-                            SetTypes::Number(value) => self.ver.set_major(*value),
-                            SetTypes::AddNumber => self.ver.inc_major(),
-                            SetTypes::SubNumber => self.ver.dec_major(),
-                            _ => Err(VersionError::InvalidOperation),
-                        },
-                        Operator::Get => {
-                            println!("{}", self.ver.major);
-
-                            Ok(())
-                        }
-                        Operator::Reset => self.ver.reset_major(),
+pub fn run(version: &mut VersionFile) -> VersionResult<()> {
+    match &version.key {
+        Some(key) => match key {
+            VersionCommand::Major(_) => match &version.operator {
+                Some(op) => match op {
+                    Operator::Set(set) => match set {
+                        SetTypes::Number(value) => version.ver.set_major(*value),
+                        SetTypes::AddNumber => version.ver.inc_major(),
+                        SetTypes::SubNumber => version.ver.dec_major(),
                         _ => Err(VersionError::InvalidOperation),
                     },
-                    None => Err(VersionError::IncompleteCommand),
+                    Operator::Get => {
+                        println!("{}", version.ver.major);
+
+                        Ok(())
+                    }
+                    Operator::Reset => version.ver.reset_major(),
+                    _ => Err(VersionError::InvalidOperation),
                 },
-                VersionCommand::Minor(_) => match &self.operator {
-                    Some(op) => match op {
-                        Operator::Set(set) => match set {
-                            SetTypes::Number(value) => self.ver.set_minor(*value),
-                            SetTypes::AddNumber => self.ver.inc_minor(),
-                            SetTypes::SubNumber => self.ver.dec_minor(),
-                            _ => Err(VersionError::InvalidOperation),
-                        },
-                        Operator::Get => {
-                            println!("{}", self.ver.minor);
-
-                            Ok(())
-                        }
-                        Operator::Reset => self.ver.reset_minor(),
-                        _ => Err(VersionError::InvalidOperation),
-                    },
-                    None => Err(VersionError::IncompleteCommand),
-                },
-                VersionCommand::Patch(_) => match &self.operator {
-                    Some(op) => match op {
-                        Operator::Set(set) => match set {
-                            SetTypes::Number(value) => self.ver.set_patch(*value),
-                            SetTypes::AddNumber => self.ver.inc_patch(),
-                            SetTypes::SubNumber => self.ver.dec_patch(),
-                            _ => Err(VersionError::InvalidOperation),
-                        },
-                        Operator::Get => {
-                            println!("{}", self.ver.patch);
-
-                            Ok(())
-                        }
-                        Operator::Reset => self.ver.reset_patch(),
-                        _ => Err(VersionError::InvalidOperation),
-                    },
-                    None => Err(VersionError::IncompleteCommand),
-                },
-                VersionCommand::Alpha(_) => match &self.operator {
-                    Some(op) => match op {
-                        Operator::Set(set) => match set {
-                            SetTypes::Number(value) => self.ver.set_alpha(*value),
-                            SetTypes::AddNumber => self.ver.inc_alpha(),
-                            SetTypes::SubNumber => self.ver.dec_alpha(),
-                            _ => Err(VersionError::InvalidOperation),
-                        },
-                        Operator::Get => {
-                            if self.ver.alpha.is_some() {
-                                println!("{}", self.ver.alpha.unwrap());
-                            } else {
-                            }
-
-                            Ok(())
-                        }
-                        Operator::Reset => self.ver.reset_alpha(),
-                        Operator::Rm => self.ver.rm_alpha(),
-                        _ => Err(VersionError::InvalidOperation),
-                    },
-                    None => Err(VersionError::IncompleteCommand),
-                },
-                VersionCommand::Beta(_) => match &self.operator {
-                    Some(op) => match op {
-                        Operator::Set(set) => match set {
-                            SetTypes::Number(value) => self.ver.set_beta(*value),
-                            SetTypes::AddNumber => self.ver.inc_beta(),
-                            SetTypes::SubNumber => self.ver.dec_beta(),
-                            _ => Err(VersionError::InvalidOperation),
-                        },
-                        Operator::Get => {
-                            if self.ver.beta.is_some() {
-                                println!("{}", self.ver.beta.unwrap());
-                            } else {
-                            }
-
-                            Ok(())
-                        }
-                        Operator::Reset => self.ver.reset_beta(),
-                        Operator::Rm => self.ver.rm_beta(),
-                        _ => Err(VersionError::InvalidOperation),
-                    },
-                    None => Err(VersionError::IncompleteCommand),
-                },
-                VersionCommand::RC(_) => match &self.operator {
-                    Some(op) => match op {
-                        Operator::Set(set) => match set {
-                            SetTypes::Number(value) => self.ver.set_rc(*value),
-                            SetTypes::AddNumber => self.ver.inc_rc(),
-                            SetTypes::SubNumber => self.ver.dec_rc(),
-                            _ => Err(VersionError::InvalidOperation),
-                        },
-                        Operator::Get => {
-                            if self.ver.rc.is_some() {
-                                println!("{}", self.ver.rc.unwrap());
-                            } else {
-                            }
-
-                            Ok(())
-                        }
-                        Operator::Reset => self.ver.reset_rc(),
-                        Operator::Rm => self.ver.rm_rc(),
-                        _ => Err(VersionError::InvalidOperation),
-                    },
-                    None => Err(VersionError::IncompleteCommand),
-                },
-                VersionCommand::Build(_) => match &self.operator {
-                    Some(op) => match op {
-                        Operator::Set(set) => match set {
-                            SetTypes::String(value) => self.ver.set_build(value.to_string()),
-                            _ => Err(VersionError::InvalidOperation),
-                        },
-                        Operator::Get => {
-                            println!("{}", self.ver.build.clone().unwrap_or("n/a".to_string()));
-
-                            Ok(())
-                        }
-                        Operator::Rm => self.ver.rm_build(),
-                        _ => Err(VersionError::InvalidOperation),
-                    },
-                    None => Err(VersionError::IncompleteCommand),
-                },
-                VersionCommand::Get => {
-                    println!("{}", self.ver.version);
-
-                    Ok(())
-                }
-                VersionCommand::Version => {
-                    println!("{}", self.ver.get_version());
-
-                    Ok(())
-                }
-                VersionCommand::Revision => {
-                    println!("{}", self.ver.get_revision());
-
-                    Ok(())
-                }
-                VersionCommand::File(_) => match &self.operator {
-                    Some(op) => match op {
-                        Operator::AddFile => match &self.value {
-                            Some(value) => match value {
-                                SetTypes::NewFile(file) => self.ver.add_tracked_file(file.clone()),
-                                _ => Err(VersionError::InvalidOperation),
-                            },
-                            None => Err(VersionError::IncompleteCommand),
-                        },
-                        Operator::RmFile => match &self.value {
-                            Some(value) => match value {
-                                SetTypes::String(value) => {
-                                    self.ver.remove_tracked_file(value.into())
-                                }
-                                _ => Err(VersionError::InvalidOperation),
-                            },
-                            None => Err(VersionError::IncompleteCommand),
-                        },
-                        Operator::Update => match &self.value {
-                            Some(value) => match value {
-                                SetTypes::String(file) => self.ver.update_file(file.into()),
-                                _ => Err(VersionError::InvalidOperation),
-                            },
-                            None => Err(VersionError::IncompleteCommand),
-                        },
-                        Operator::UpdateAll => self.ver.update_tracked_files(),
-                        Operator::ListFiles => {
-                            if self.ver.files.is_some() {
-                                for file in self.ver.files.as_ref().unwrap().iter() {
-                                    println!("{}", file.file);
-                                }
-                            }
-                            Ok(())
-                        }
-                        _ => Err(VersionError::InvalidOperation),
-                    },
-                    None => Err(VersionError::IncompleteCommand),
-                },
+                None => Err(VersionError::IncompleteCommand),
             },
-            _ => Err(VersionError::InvalidOperation),
-        }
+            VersionCommand::Minor(_) => match &version.operator {
+                Some(op) => match op {
+                    Operator::Set(set) => match set {
+                        SetTypes::Number(value) => version.ver.set_minor(*value),
+                        SetTypes::AddNumber => version.ver.inc_minor(),
+                        SetTypes::SubNumber => version.ver.dec_minor(),
+                        _ => Err(VersionError::InvalidOperation),
+                    },
+                    Operator::Get => {
+                        println!("{}", version.ver.minor);
+
+                        Ok(())
+                    }
+                    Operator::Reset => version.ver.reset_minor(),
+                    _ => Err(VersionError::InvalidOperation),
+                },
+                None => Err(VersionError::IncompleteCommand),
+            },
+            VersionCommand::Patch(_) => match &version.operator {
+                Some(op) => match op {
+                    Operator::Set(set) => match set {
+                        SetTypes::Number(value) => version.ver.set_patch(*value),
+                        SetTypes::AddNumber => version.ver.inc_patch(),
+                        SetTypes::SubNumber => version.ver.dec_patch(),
+                        _ => Err(VersionError::InvalidOperation),
+                    },
+                    Operator::Get => {
+                        println!("{}", version.ver.patch);
+
+                        Ok(())
+                    }
+                    Operator::Reset => version.ver.reset_patch(),
+                    _ => Err(VersionError::InvalidOperation),
+                },
+                None => Err(VersionError::IncompleteCommand),
+            },
+            VersionCommand::Alpha(_) => match &version.operator {
+                Some(op) => match op {
+                    Operator::Set(set) => match set {
+                        SetTypes::Number(value) => version.ver.set_alpha(*value),
+                        SetTypes::AddNumber => version.ver.inc_alpha(),
+                        SetTypes::SubNumber => version.ver.dec_alpha(),
+                        _ => Err(VersionError::InvalidOperation),
+                    },
+                    Operator::Get => {
+                        if version.ver.alpha.is_some() {
+                            println!("{}", version.ver.alpha.unwrap());
+                        } else {
+                        }
+
+                        Ok(())
+                    }
+                    Operator::Reset => version.ver.reset_alpha(),
+                    Operator::Rm => version.ver.rm_alpha(),
+                    _ => Err(VersionError::InvalidOperation),
+                },
+                None => Err(VersionError::IncompleteCommand),
+            },
+            VersionCommand::Beta(_) => match &version.operator {
+                Some(op) => match op {
+                    Operator::Set(set) => match set {
+                        SetTypes::Number(value) => version.ver.set_beta(*value),
+                        SetTypes::AddNumber => version.ver.inc_beta(),
+                        SetTypes::SubNumber => version.ver.dec_beta(),
+                        _ => Err(VersionError::InvalidOperation),
+                    },
+                    Operator::Get => {
+                        if version.ver.beta.is_some() {
+                            println!("{}", version.ver.beta.unwrap());
+                        } else {
+                        }
+
+                        Ok(())
+                    }
+                    Operator::Reset => version.ver.reset_beta(),
+                    Operator::Rm => version.ver.rm_beta(),
+                    _ => Err(VersionError::InvalidOperation),
+                },
+                None => Err(VersionError::IncompleteCommand),
+            },
+            VersionCommand::RC(_) => match &version.operator {
+                Some(op) => match op {
+                    Operator::Set(set) => match set {
+                        SetTypes::Number(value) => version.ver.set_rc(*value),
+                        SetTypes::AddNumber => version.ver.inc_rc(),
+                        SetTypes::SubNumber => version.ver.dec_rc(),
+                        _ => Err(VersionError::InvalidOperation),
+                    },
+                    Operator::Get => {
+                        if version.ver.rc.is_some() {
+                            println!("{}", version.ver.rc.unwrap());
+                        } else {
+                        }
+
+                        Ok(())
+                    }
+                    Operator::Reset => version.ver.reset_rc(),
+                    Operator::Rm => version.ver.rm_rc(),
+                    _ => Err(VersionError::InvalidOperation),
+                },
+                None => Err(VersionError::IncompleteCommand),
+            },
+            VersionCommand::Build(_) => match &version.operator {
+                Some(op) => match op {
+                    Operator::Set(set) => match set {
+                        SetTypes::String(value) => version.ver.set_build(value.to_string()),
+                        _ => Err(VersionError::InvalidOperation),
+                    },
+                    Operator::Get => {
+                        println!("{}", version.ver.build.clone().unwrap_or("n/a".to_string()));
+
+                        Ok(())
+                    }
+                    Operator::Rm => version.ver.rm_build(),
+                    _ => Err(VersionError::InvalidOperation),
+                },
+                None => Err(VersionError::IncompleteCommand),
+            },
+            VersionCommand::Get => {
+                println!("{}", version.ver.version);
+
+                Ok(())
+            }
+            VersionCommand::Version => {
+                println!("{}", version.ver.get_version());
+
+                Ok(())
+            }
+            VersionCommand::Revision => {
+                println!("{}", version.ver.get_revision());
+
+                Ok(())
+            }
+            VersionCommand::File(_) => match &version.operator {
+                Some(op) => match op {
+                    Operator::AddFile => match &version.value {
+                        Some(value) => match value {
+                            SetTypes::NewFile(file) => version.ver.add_tracked_file(file.clone()),
+                            _ => Err(VersionError::InvalidOperation),
+                        },
+                        None => Err(VersionError::IncompleteCommand),
+                    },
+                    Operator::RmFile => match &version.value {
+                        Some(value) => match value {
+                            SetTypes::String(value) => {
+                                version.ver.remove_tracked_file(value.into())
+                            }
+                            _ => Err(VersionError::InvalidOperation),
+                        },
+                        None => Err(VersionError::IncompleteCommand),
+                    },
+                    Operator::Update => match &version.value {
+                        Some(value) => match value {
+                            SetTypes::String(file) => version.ver.update_file(file.into()),
+                            _ => Err(VersionError::InvalidOperation),
+                        },
+                        None => Err(VersionError::IncompleteCommand),
+                    },
+                    Operator::UpdateAll => version.ver.update_tracked_files(),
+                    Operator::ListFiles => {
+                        if version.ver.files.is_some() {
+                            for file in version.ver.files.as_ref().unwrap().iter() {
+                                println!("{}", file.file);
+                            }
+                        }
+                        Ok(())
+                    }
+                    _ => Err(VersionError::InvalidOperation),
+                },
+                None => Err(VersionError::IncompleteCommand),
+            },
+        },
+        _ => Err(VersionError::InvalidOperation),
     }
 }

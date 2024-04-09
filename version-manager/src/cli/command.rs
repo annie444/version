@@ -1,5 +1,5 @@
 use super::VersionCommand;
-use crate::{version::VersionFile, VersionError, VersionResult};
+use crate::{version::VersionFile, CommandRun, VersionError, VersionResult};
 use clap::{
     builder::{styling::AnsiColor, Styles},
     value_parser, Command, CommandFactory, Parser,
@@ -28,7 +28,14 @@ pub struct Cli {
 }
 
 impl Cli {
-    pub fn run(&self, version: &mut VersionFile) -> VersionResult<()> {
+    fn print_completions<G: Generator>(gen: G, cmd: &mut Command) -> VersionResult<()> {
+        generate(gen, cmd, cmd.get_name().to_string(), &mut io::stdout());
+        Ok(())
+    }
+}
+
+impl CommandRun for Cli {
+    fn run(&self, version: &mut VersionFile) -> VersionResult<()> {
         if let Some(generator) = self.generator {
             let mut cmd = Cli::command();
             Self::print_completions(generator, &mut cmd)
@@ -37,10 +44,5 @@ impl Cli {
         } else {
             Err(VersionError::NoCommand)
         }
-    }
-
-    fn print_completions<G: Generator>(gen: G, cmd: &mut Command) -> VersionResult<()> {
-        generate(gen, cmd, cmd.get_name().to_string(), &mut io::stdout());
-        Ok(())
     }
 }

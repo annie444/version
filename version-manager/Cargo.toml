@@ -1,6 +1,6 @@
 [package]
 name = "version-manager"
-version = "2.0.0-rc"
+version = "2.5.0"
 edition = "2021"
 description = "A simple version manager for your projects."
 license = "GPL-3.0-or-later"

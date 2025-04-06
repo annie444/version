@@ -1,9 +1,9 @@
 use clap::{CommandFactory, Parser};
 use std::env::current_dir;
-use version_manager::{cli, version::VersionFile, CommandRun, VersionError};
+use version_manager::{VersionError, cli, run};
 
 fn main() {
-    let args = cli::Cli::parse();
+    let mut args = cli::Cli::parse();
 
     let curr_dir = match current_dir() {
         Ok(curr_dir) => curr_dir,
@@ -13,15 +13,13 @@ fn main() {
     };
     let version_file = curr_dir.join("VERSION.toml");
 
-    let mut version = match VersionFile::load(version_file) {
-        Ok(version) => version,
-        Err(e) => e.terminate(&mut cli::Cli::command()),
-    };
-
-    match args.run(&mut version) {
-        Ok(_) => match version.save() {
-            Ok(_) => (),
-            Err(e) => e.terminate(&mut cli::Cli::command()),
+    match args.run() {
+        Ok(scope) => match scope {
+            Some(scope) => match run::run(scope, version_file) {
+                Ok(_) => {}
+                Err(e) => e.terminate(&mut cli::Cli::command()),
+            },
+            None => (),
         },
         Err(e) => e.terminate(&mut cli::Cli::command()),
     }

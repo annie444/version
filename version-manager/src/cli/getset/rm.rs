@@ -1,11 +1,8 @@
 use super::Set;
-use crate::{
-    version::{run, Operator, VersionFile},
-    CommandRun, VersionResult,
-};
+use crate::{VersionError, version::Operator};
 use clap::{Parser, Subcommand};
 
-#[derive(Parser, Debug, Clone)]
+#[derive(Parser, Debug, Clone, PartialEq)]
 /// Get or set the version number
 #[command(arg_required_else_help(true))]
 pub struct GetSetRm {
@@ -13,13 +10,23 @@ pub struct GetSetRm {
     pub command: GetSetRmCommand,
 }
 
-impl CommandRun for GetSetRm {
-    fn run(&self, version: &mut VersionFile) -> VersionResult<()> {
-        self.command.run(version)
+impl TryFrom<GetSetRm> for Operator {
+    type Error = VersionError;
+
+    fn try_from(cmd: GetSetRm) -> Result<Self, Self::Error> {
+        cmd.command.try_into()
     }
 }
 
-#[derive(Subcommand, Debug, Clone)]
+impl TryFrom<&GetSetRm> for Operator {
+    type Error = VersionError;
+
+    fn try_from(cmd: &GetSetRm) -> Result<Self, Self::Error> {
+        (&cmd.command).try_into()
+    }
+}
+
+#[derive(Subcommand, Debug, Clone, PartialEq)]
 /// Get or set the version number
 pub enum GetSetRmCommand {
     /// Print the current version
@@ -28,20 +35,32 @@ pub enum GetSetRmCommand {
     Set(Set),
     /// Remove the version identifier
     Rm,
+    /// Reset the subversions
+    Reset,
 }
 
-impl CommandRun for GetSetRmCommand {
-    fn run(&self, version: &mut VersionFile) -> VersionResult<()> {
-        match self {
-            GetSetRmCommand::Get => {
-                version.operator = Some(Operator::Get);
-                run(version)
-            }
-            GetSetRmCommand::Set(set) => set.run(version),
-            GetSetRmCommand::Rm => {
-                version.operator = Some(Operator::Rm);
-                run(version)
-            }
+impl TryFrom<&GetSetRmCommand> for Operator {
+    type Error = VersionError;
+
+    fn try_from(cmd: &GetSetRmCommand) -> Result<Self, Self::Error> {
+        match cmd {
+            GetSetRmCommand::Get => Ok(Operator::Get),
+            GetSetRmCommand::Set(set) => Ok(Operator::Set(set.try_into()?)),
+            GetSetRmCommand::Rm => Ok(Operator::Rm),
+            GetSetRmCommand::Reset => Ok(Operator::Reset),
+        }
+    }
+}
+
+impl TryFrom<GetSetRmCommand> for Operator {
+    type Error = VersionError;
+
+    fn try_from(cmd: GetSetRmCommand) -> Result<Self, Self::Error> {
+        match cmd {
+            GetSetRmCommand::Get => Ok(Operator::Get),
+            GetSetRmCommand::Set(set) => Ok(Operator::Set(set.try_into()?)),
+            GetSetRmCommand::Rm => Ok(Operator::Rm),
+            GetSetRmCommand::Reset => Ok(Operator::Reset),
         }
     }
 }

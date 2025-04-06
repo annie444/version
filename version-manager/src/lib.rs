@@ -1,75 +1,79 @@
 pub mod cli;
 pub mod files;
+pub mod run;
 pub mod version;
 
-use clap::{
-    error::{Error, ErrorKind},
-    Command,
-};
-use core::fmt::Display;
+use clap::{Command, error};
+use thiserror::Error;
 
-pub trait CommandRun {
-    fn run(&self, version: &mut version::VersionFile) -> VersionResult<()>;
-}
-
-#[derive(Debug)]
+#[derive(Error, Debug)]
 pub enum VersionError {
-    IoError(std::io::Error),
-    TomlDeError(toml::de::Error),
-    TomlSerError(toml::ser::Error),
-    RegexError(regex::Error),
+    #[error("IO Error: {0}")]
+    IoError(#[from] std::io::Error),
+    #[error("TOML Deserialize Error: {0}")]
+    TomlDeError(#[from] toml::de::Error),
+    #[error("TOML Serialize Error: {0}")]
+    TomlSerError(#[from] toml::ser::Error),
+    #[error("Regex Error: {0}")]
+    RegexError(#[from] regex::Error),
+    #[error("Incomplete Command")]
     IncompleteCommand,
+    #[error("Invalid Operation")]
     InvalidOperation,
+    #[error("No Command specified")]
     NoCommand,
+    #[error("No Value specified")]
     NoValue,
+    #[error("No Negatives allowed")]
     NoNegatives,
+    #[error("Invalid Command")]
+    InvalidCommand,
+    #[error("Empty Version")]
+    EmptyVersion,
+    #[error("Invalid Prerelease: {0}")]
+    InvalidPrerelease(String),
+    #[error("Invalid Version: {0}")]
+    InvalidVersion(#[from] semver::Error),
+    #[error("Package name required")]
+    PackageNameRequired,
 }
 
 pub type VersionResult<T> = Result<T, VersionError>;
 
-impl Display for VersionError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.to_string())
-    }
-}
-
 impl VersionError {
-    pub fn to_string(&self) -> String {
-        match self {
-            VersionError::IoError(e) => format!("IO Error: {}", e),
-            VersionError::TomlDeError(e) => format!("TOML Deserialize Error: {}", e),
-            VersionError::TomlSerError(e) => format!("TOML Serialize Error: {}", e),
-            VersionError::RegexError(e) => format!("Regex Error: {}", e),
-            VersionError::IncompleteCommand => "Please specify a subcommand".to_string(),
-            VersionError::InvalidOperation => "Invalid operation".to_string(),
-            VersionError::NoCommand => "Unable to parse the command".to_string(),
-            VersionError::NoValue => "No value given".to_string(),
-            VersionError::NoNegatives => "Negative values are not allowed".to_string(),
-        }
-    }
-
-    pub fn error(&self, cmd: &mut Command) -> Error {
-        cmd.error(Into::<ErrorKind>::into(self), self.to_string())
+    pub fn cmd_error(&self, cmd: &mut Command) -> error::Error {
+        cmd.error(Into::<error::ErrorKind>::into(self), self.to_string())
     }
 
     pub fn terminate(&self, cmd: &mut Command) -> ! {
-        let err = self.error(cmd);
+        let err = self.cmd_error(cmd);
         err.exit()
     }
 }
 
-impl Into<ErrorKind> for &VersionError {
-    fn into(self) -> ErrorKind {
-        match self {
-            VersionError::IoError(_) => ErrorKind::Io,
-            VersionError::TomlDeError(_) => ErrorKind::Io,
-            VersionError::TomlSerError(_) => ErrorKind::Io,
-            VersionError::RegexError(_) => ErrorKind::ValueValidation,
-            VersionError::IncompleteCommand => ErrorKind::DisplayHelpOnMissingArgumentOrSubcommand,
-            VersionError::InvalidOperation => ErrorKind::DisplayHelpOnMissingArgumentOrSubcommand,
-            VersionError::NoCommand => ErrorKind::DisplayHelpOnMissingArgumentOrSubcommand,
-            VersionError::NoValue => ErrorKind::DisplayHelpOnMissingArgumentOrSubcommand,
-            VersionError::NoNegatives => ErrorKind::InvalidValue,
+impl From<&VersionError> for error::ErrorKind {
+    fn from(err: &VersionError) -> error::ErrorKind {
+        match err {
+            VersionError::IoError(_) => error::ErrorKind::Io,
+            VersionError::TomlDeError(_) => error::ErrorKind::Io,
+            VersionError::TomlSerError(_) => error::ErrorKind::Io,
+            VersionError::RegexError(_) => error::ErrorKind::ValueValidation,
+            VersionError::IncompleteCommand => {
+                error::ErrorKind::DisplayHelpOnMissingArgumentOrSubcommand
+            }
+            VersionError::InvalidOperation => {
+                error::ErrorKind::DisplayHelpOnMissingArgumentOrSubcommand
+            }
+            VersionError::NoCommand => error::ErrorKind::DisplayHelpOnMissingArgumentOrSubcommand,
+            VersionError::NoValue => error::ErrorKind::DisplayHelpOnMissingArgumentOrSubcommand,
+            VersionError::NoNegatives => error::ErrorKind::InvalidValue,
+            VersionError::InvalidCommand => error::ErrorKind::InvalidValue,
+            VersionError::EmptyVersion => error::ErrorKind::InvalidValue,
+            VersionError::InvalidPrerelease(_) => error::ErrorKind::InvalidValue,
+            VersionError::InvalidVersion(_) => error::ErrorKind::InvalidValue,
+            VersionError::PackageNameRequired => {
+                error::ErrorKind::DisplayHelpOnMissingArgumentOrSubcommand
+            }
         }
     }
 }
@@ -79,13 +83,14 @@ mod test {
 
     use super::*;
     use clap::CommandFactory;
+    use clap::error::ErrorKind;
     #[test]
     fn no_cmd() {
         let error = VersionError::NoCommand;
         let displ = error.to_string();
         assert!(displ.len() > 0);
         let cmd = cli::Cli::command();
-        let err = error.error(&mut cmd.clone());
+        let err = error.cmd_error(&mut cmd.clone());
         let render = format!("{}", err.render());
         assert!(render.len() > 0);
         assert_eq!(
@@ -100,7 +105,7 @@ mod test {
         let displ = error.to_string();
         assert!(displ.len() > 0);
         let cmd = cli::Cli::command();
-        let err = error.error(&mut cmd.clone());
+        let err = error.cmd_error(&mut cmd.clone());
         let render = format!("{}", err.render());
         assert!(render.len() > 0);
         assert_eq!(Into::<ErrorKind>::into(&error), ErrorKind::Io);
@@ -111,7 +116,7 @@ mod test {
         let displ = error.to_string();
         assert!(displ.len() > 0);
         let cmd = cli::Cli::command();
-        let err = error.error(&mut cmd.clone());
+        let err = error.cmd_error(&mut cmd.clone());
         let render = format!("{}", err.render());
         assert!(render.len() > 0);
         assert_eq!(Into::<ErrorKind>::into(&error), ErrorKind::ValueValidation);
@@ -123,7 +128,7 @@ mod test {
         let displ = error.to_string();
         assert!(displ.len() > 0);
         let cmd = cli::Cli::command();
-        let err = error.error(&mut cmd.clone());
+        let err = error.cmd_error(&mut cmd.clone());
         let render = format!("{}", err.render());
         assert!(render.len() > 0);
         assert_eq!(Into::<ErrorKind>::into(&error), ErrorKind::Io);
@@ -135,7 +140,7 @@ mod test {
         let displ = error.to_string();
         assert!(displ.len() > 0);
         let cmd = cli::Cli::command();
-        let err = error.error(&mut cmd.clone());
+        let err = error.cmd_error(&mut cmd.clone());
         let render = format!("{}", err.render());
         assert!(render.len() > 0);
         assert_eq!(Into::<ErrorKind>::into(&error), ErrorKind::Io);
@@ -146,7 +151,7 @@ mod test {
         let displ = error.to_string();
         assert!(displ.len() > 0);
         let cmd = cli::Cli::command();
-        let err = error.error(&mut cmd.clone());
+        let err = error.cmd_error(&mut cmd.clone());
         let render = format!("{}", err.render());
         assert!(render.len() > 0);
         assert_eq!(
@@ -160,7 +165,7 @@ mod test {
         let displ = error.to_string();
         assert!(displ.len() > 0);
         let cmd = cli::Cli::command();
-        let err = error.error(&mut cmd.clone());
+        let err = error.cmd_error(&mut cmd.clone());
         let render = format!("{}", err.render());
         assert!(render.len() > 0);
         assert_eq!(
@@ -174,7 +179,7 @@ mod test {
         let displ = error.to_string();
         assert!(displ.len() > 0);
         let cmd = cli::Cli::command();
-        let err = error.error(&mut cmd.clone());
+        let err = error.cmd_error(&mut cmd.clone());
         let render = format!("{}", err.render());
         assert!(render.len() > 0);
         assert_eq!(
@@ -188,7 +193,7 @@ mod test {
         let displ = error.to_string();
         assert!(displ.len() > 0);
         let cmd = cli::Cli::command();
-        let err = error.error(&mut cmd.clone());
+        let err = error.cmd_error(&mut cmd.clone());
         let render = format!("{}", err.render());
         assert!(render.len() > 0);
         assert_eq!(Into::<ErrorKind>::into(&error), ErrorKind::InvalidValue);

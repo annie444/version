@@ -1,5 +1,5 @@
-mod cmd;
 use clap::CommandFactory;
+use version_manager::cli::command::Cli;
 
 use std::{
     env, error, fs,
@@ -107,7 +107,7 @@ fn target(target: String, up: bool) -> Result<(), DynError> {
             return Err((
                 format!("Error when creating 'dist/{}/{}' dir", target, PACKAGE_NAME),
                 Box::new(e),
-            ))
+            ));
         }
     };
     let target_dir = format!("{}/{}", target, PACKAGE_NAME);
@@ -124,7 +124,7 @@ fn target(target: String, up: bool) -> Result<(), DynError> {
             return Err((
                 format!("Unable to locate index of {}", &target),
                 Box::new(std::fmt::Error),
-            ))
+            ));
         }
     };
     package_release(Some(&target), Some(index), up)?;
@@ -145,7 +145,7 @@ fn install_targets() -> Result<(), DynError> {
                 return Err((
                     format!("Error in command 'cargo target add {}'", target),
                     Box::new(e),
-                ))
+                ));
             }
         };
 
@@ -172,7 +172,7 @@ fn install_target(target: &str) -> Result<(), DynError> {
             return Err((
                 format!("Error in command 'cargo target add {}'", target),
                 Box::new(e),
-            ))
+            ));
         }
     };
 
@@ -203,7 +203,7 @@ fn package_targets(up: bool) -> Result<(), DynError> {
                         dist_dir(Some(&format!("{}/{}", target, PACKAGE_NAME)))
                     ),
                     Box::new(e),
-                ))
+                ));
             }
         };
 
@@ -272,7 +272,7 @@ fn package_unknown(up: bool) -> Result<(), DynError> {
             return Err((
                 format!("Unable to locate index of {}", &target),
                 Box::new(std::fmt::Error),
-            ))
+            ));
         }
     };
     package_release(Some(target), Some(index), up)?;
@@ -310,7 +310,7 @@ fn package(up: bool) -> Result<(), DynError> {
             return Err((
                 format!("Error when creating 'dist/{}' dir", PACKAGE_NAME),
                 Box::new(e),
-            ))
+            ));
         }
     };
 
@@ -347,7 +347,7 @@ fn dist_binary(target: Option<&str>, output: Option<&str>) -> Result<(), DynErro
                         CRATE_NAME, tar
                     ),
                     Box::new(e),
-                ))
+                ));
             }
         },
         None => match Command::new(cargo)
@@ -360,7 +360,7 @@ fn dist_binary(target: Option<&str>, output: Option<&str>) -> Result<(), DynErro
                 return Err((
                     "Error in command 'cargo build --release'".to_string(),
                     Box::new(e),
-                ))
+                ));
             }
         },
     };
@@ -387,7 +387,7 @@ fn dist_binary(target: Option<&str>, output: Option<&str>) -> Result<(), DynErro
                         dist_dir(target)
                     ),
                     Box::new(e),
-                ))
+                ));
             }
         };
     }
@@ -403,7 +403,7 @@ fn dist_binary(target: Option<&str>, output: Option<&str>) -> Result<(), DynErro
             return Err((
                 format!("[371] Error when copying {:?} to {:?}", dst, out_dir),
                 Box::new(e),
-            ))
+            ));
         }
     };
 
@@ -417,10 +417,10 @@ fn dist_readme(target: Option<&str>) -> Result<(), DynError> {
             return Err((
                 "Error when trying to create the README".to_string(),
                 Box::new(e),
-            ))
+            ));
         }
     };
-    match readme.write_all(clap_markdown::help_markdown::<cmd::Cli>().as_bytes()) {
+    match readme.write_all(clap_markdown::help_markdown::<Cli>().as_bytes()) {
         Ok(_) => {}
         Err(e) => return Err(("Error when writing to the README".to_string(), Box::new(e))),
     };
@@ -430,7 +430,7 @@ fn dist_readme(target: Option<&str>) -> Result<(), DynError> {
             return Err((
                 "Unable to flush the README file buffer".to_string(),
                 Box::new(e),
-            ))
+            ));
         }
     };
 
@@ -443,7 +443,7 @@ fn dist_readme(target: Option<&str>) -> Result<(), DynError> {
             return Err((
                 "Error when creating 'dist/doc' dir".to_string(),
                 Box::new(e),
-            ))
+            ));
         }
     };
 
@@ -460,7 +460,7 @@ fn dist_readme(target: Option<&str>) -> Result<(), DynError> {
                     dist_dir(target).join("doc/README"),
                 ),
                 Box::new(e),
-            ))
+            ));
         }
     };
 
@@ -487,7 +487,7 @@ fn dist_changelog(target: Option<&str>) -> Result<(), DynError> {
             return Err((
                 "Unable to cd into the project root".to_string(),
                 Box::new(e),
-            ))
+            ));
         }
     };
     let status = match Command::new("auto-changelog")
@@ -499,7 +499,7 @@ fn dist_changelog(target: Option<&str>) -> Result<(), DynError> {
             return Err((
                 "Error when running command 'auto-changelog'".to_string(),
                 Box::new(e),
-            ))
+            ));
         }
     };
 
@@ -523,7 +523,7 @@ fn dist_changelog(target: Option<&str>) -> Result<(), DynError> {
                     dist_dir(target).join("doc/CHANGELOG"),
                 ),
                 Box::new(e),
-            ))
+            ));
         }
     };
 
@@ -557,7 +557,7 @@ fn dist_license(target: Option<&str>) -> Result<(), DynError> {
                     dist_dir(target).join("doc/LICENSE"),
                 ),
                 Box::new(e),
-            ))
+            ));
         }
     };
 
@@ -590,10 +590,10 @@ fn dist_manpage(target: Option<&str>) -> Result<(), DynError> {
                     dist_dir(target).join("manpages")
                 ),
                 Box::new(e),
-            ))
+            ));
         }
     }
-    match clap_mangen::generate_to(cmd::Cli::command(), dist_dir(target).join("manpages")) {
+    match clap_mangen::generate_to(Cli::command(), dist_dir(target).join("manpages")) {
         Ok(_) => {}
         Err(e) => return Err(("Error when creating the MAN pages".to_string(), Box::new(e))),
     };
@@ -659,14 +659,15 @@ fn generate_rpm(target: Option<usize>) -> Result<(), DynError> {
                 return Err((
                     format!(
                         "Failed when running 'cargo generate-rpm --arch {} --package {} --output {}/{}-v{}-{}.rpm'",
-                        ARCH[tgt], CRATE_NAME,
+                        ARCH[tgt],
+                        CRATE_NAME,
                         dist_dir(Some(&TARGETS[tgt])).to_string_lossy(),
                         PACKAGE_NAME,
                         env!("CARGO_PKG_VERSION"),
                         &TARGETS[tgt]
                     ),
                     Box::new(e),
-                ))
+                ));
             }
         },
         None => match Command::new("cargo")
@@ -685,7 +686,7 @@ fn generate_rpm(target: Option<usize>) -> Result<(), DynError> {
                         CRATE_NAME
                     ),
                     Box::new(e),
-                ))
+                ));
             }
         },
     };
@@ -725,14 +726,15 @@ fn generate_deb(target: Option<&str>) -> Result<(), DynError> {
                 return Err((
                     format!(
                         "Failed when running 'cargo deb --target {} --package {} --no-build --output {}/{}-v{}-{}.deb'",
-                        tgt, CRATE_NAME,
+                        tgt,
+                        CRATE_NAME,
                         dist_dir(target).to_string_lossy(),
                         PACKAGE_NAME,
                         env!("CARGO_PKG_VERSION"),
                         tgt
                     ),
                     Box::new(e),
-                ))
+                ));
             }
         },
         None => match Command::new("cargo")
@@ -752,7 +754,7 @@ fn generate_deb(target: Option<&str>) -> Result<(), DynError> {
                         CRATE_NAME
                     ),
                     Box::new(e),
-                ))
+                ));
             }
         },
     };
@@ -783,7 +785,7 @@ fn package_release(target: Option<&str>, index: Option<usize>, up: bool) -> Resu
             return Err((
                 "Unable to cd into the dist directory".to_string(),
                 Box::new(e),
-            ))
+            ));
         }
     };
 
@@ -804,7 +806,7 @@ fn package_release(target: Option<&str>, index: Option<usize>, up: bool) -> Resu
                     package, PACKAGE_NAME
                 ),
                 Box::new(e),
-            ))
+            ));
         }
     };
 
@@ -837,7 +839,7 @@ fn package_release(target: Option<&str>, index: Option<usize>, up: bool) -> Resu
                         dist_dir(None)
                     ),
                     Box::new(e),
-                ))
+                ));
             }
         }
     }
@@ -893,7 +895,7 @@ fn publish(version: String, file: String) -> Result<(), DynError> {
                     version, file
                 ),
                 Box::new(e),
-            ))
+            ));
         }
     };
 

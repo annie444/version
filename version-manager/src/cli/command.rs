@@ -1,10 +1,11 @@
 use super::VersionCommand;
-use crate::{version::VersionFile, CommandRun, VersionError, VersionResult};
+use crate::{VersionError, VersionResult, version::Scope};
 use clap::{
-    builder::{styling::AnsiColor, Styles},
-    value_parser, Command, CommandFactory, Parser,
+    Command, CommandFactory, Parser,
+    builder::{Styles, styling::AnsiColor},
+    value_parser,
 };
-use clap_complete::{generate, Generator, Shell};
+use clap_complete::{Generator, Shell, generate};
 use std::io;
 
 const STYLE: Styles = Styles::styled()
@@ -28,21 +29,37 @@ pub struct Cli {
 }
 
 impl Cli {
-    fn print_completions<G: Generator>(gen: G, cmd: &mut Command) -> VersionResult<()> {
-        generate(gen, cmd, cmd.get_name().to_string(), &mut io::stdout());
+    fn print_completions<G: Generator>(generator: G, cmd: &mut Command) -> VersionResult<()> {
+        generate(
+            generator,
+            cmd,
+            cmd.get_name().to_string(),
+            &mut io::stdout(),
+        );
         Ok(())
+    }
+
+    pub fn run(&mut self) -> VersionResult<Option<Scope>> {
+        if let Some(generator) = self.generator.take() {
+            let mut cmd = Cli::command();
+            cmd.set_bin_name("version");
+            Self::print_completions(generator, &mut cmd)?;
+            return Ok(None);
+        } else if let Some(command) = self.command.take() {
+            return Ok(Some(command.try_into()?));
+        } else {
+            return Err(VersionError::InvalidOperation);
+        }
     }
 }
 
-impl CommandRun for Cli {
-    fn run(&self, version: &mut VersionFile) -> VersionResult<()> {
-        if let Some(generator) = self.generator {
-            let mut cmd = Cli::command();
-            Self::print_completions(generator, &mut cmd)
-        } else if let Some(command) = &self.command {
-            command.run(version)
-        } else {
-            Err(VersionError::NoCommand)
+impl TryFrom<Cli> for Scope {
+    type Error = VersionError;
+
+    fn try_from(cli: Cli) -> Result<Self, Self::Error> {
+        match cli.command {
+            Some(command) => command.try_into(),
+            None => Err(VersionError::InvalidOperation),
         }
     }
 }

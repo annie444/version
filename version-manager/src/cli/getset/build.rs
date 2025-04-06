@@ -1,10 +1,10 @@
 use crate::{
-    version::{run, Operator, SetTypes, VersionFile},
-    CommandRun, VersionResult,
+    VersionError,
+    version::{Operator, SetTypes},
 };
-use clap::{builder::NonEmptyStringValueParser, Args, Parser, Subcommand};
+use clap::{Args, Parser, Subcommand, builder::NonEmptyStringValueParser};
 
-#[derive(Parser, Debug, Clone)]
+#[derive(Parser, Debug, Clone, PartialEq)]
 /// Get or set the build version
 #[command(arg_required_else_help(true))]
 pub struct GetSetBuild {
@@ -12,13 +12,23 @@ pub struct GetSetBuild {
     pub command: GetSetBuildCommand,
 }
 
-impl CommandRun for GetSetBuild {
-    fn run(&self, version: &mut VersionFile) -> VersionResult<()> {
-        self.command.run(version)
+impl TryFrom<GetSetBuild> for Operator {
+    type Error = VersionError;
+
+    fn try_from(cmd: GetSetBuild) -> Result<Self, Self::Error> {
+        cmd.command.try_into()
     }
 }
 
-#[derive(Subcommand, Debug, Clone)]
+impl TryFrom<&GetSetBuild> for Operator {
+    type Error = VersionError;
+
+    fn try_from(cmd: &GetSetBuild) -> Result<Self, Self::Error> {
+        (&cmd.command).try_into()
+    }
+}
+
+#[derive(Subcommand, Debug, Clone, PartialEq)]
 /// Get or set the build version
 pub enum GetSetBuildCommand {
     Get,
@@ -26,32 +36,51 @@ pub enum GetSetBuildCommand {
     Rm,
 }
 
-impl CommandRun for GetSetBuildCommand {
-    fn run(&self, version: &mut VersionFile) -> VersionResult<()> {
-        match self {
-            GetSetBuildCommand::Get => {
-                version.operator = Some(Operator::Get);
-                run(version)
-            }
-            GetSetBuildCommand::Set(set) => set.run(version),
-            GetSetBuildCommand::Rm => {
-                version.operator = Some(Operator::Rm);
-                run(version)
-            }
-        }
+impl TryFrom<&GetSetBuildCommand> for Operator {
+    type Error = VersionError;
+
+    fn try_from(cmd: &GetSetBuildCommand) -> Result<Self, Self::Error> {
+        let op = match cmd {
+            GetSetBuildCommand::Get => Operator::Get,
+            GetSetBuildCommand::Set(set) => Operator::Set(set.try_into()?),
+            GetSetBuildCommand::Rm => Operator::Rm,
+        };
+        Ok(op)
     }
 }
 
-#[derive(Args, Debug, Clone)]
+impl TryFrom<GetSetBuildCommand> for Operator {
+    type Error = VersionError;
+
+    fn try_from(cmd: GetSetBuildCommand) -> Result<Self, Self::Error> {
+        let op = match cmd {
+            GetSetBuildCommand::Get => Operator::Get,
+            GetSetBuildCommand::Set(set) => Operator::Set(set.try_into()?),
+            GetSetBuildCommand::Rm => Operator::Rm,
+        };
+        Ok(op)
+    }
+}
+
+#[derive(Args, Debug, Clone, PartialEq)]
 /// Set the build version
 pub struct SetBuild {
     #[arg(value_parser = NonEmptyStringValueParser::new())]
     pub value: String,
 }
 
-impl CommandRun for SetBuild {
-    fn run(&self, version: &mut VersionFile) -> VersionResult<()> {
-        version.operator = Some(Operator::Set(SetTypes::String(self.value.clone())));
-        run(version)
+impl TryFrom<SetBuild> for SetTypes {
+    type Error = VersionError;
+
+    fn try_from(set: SetBuild) -> Result<Self, Self::Error> {
+        Ok(SetTypes::String(set.value))
+    }
+}
+
+impl TryFrom<&SetBuild> for SetTypes {
+    type Error = VersionError;
+
+    fn try_from(set: &SetBuild) -> Result<Self, Self::Error> {
+        Ok(SetTypes::String(set.value.clone()))
     }
 }

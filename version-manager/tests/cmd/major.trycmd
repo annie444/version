@@ -2,34 +2,15 @@
 $ version get
 0.1.0
 
-```
-
-```
 $ version major set +
-1.1.0
 
-```
-
-```
 $ version major set 5
-5.1.0
 
-```
-
-```
 $ version major set -
-4.1.0
 
-```
-
-```
 $ version major get
 4
 
-```
-
-```
 $ version major reset
-4.0.0
 
 ```

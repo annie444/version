@@ -11,9 +11,11 @@ Commands:
   rc        Change the release candidate identifier
   build     Change the build identifier
   get       Get the current version number as a full SemVer string
+  set       Set the version number to a specific version
   version   Get just the version number as a string with no revision or build identifiers
   revision  Get just the revision number as a string with no build identifiers
   file      Track and update the version number in a file
+  package   Track and update the version number in a file
   help      Print this message or the help of the given subcommand(s)
 
 Options:

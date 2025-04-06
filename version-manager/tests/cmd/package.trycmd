@@ -1,0 +1,18 @@
+```
+$ version package test get
+
+$ version package test major set +
+
+$ version package test major set 5
+
+$ version package test major set -
+
+$ version package test major get
+4
+
+$ version package test major reset
+
+$ version package list
+
+$ version package test rm
+```

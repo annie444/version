@@ -1,14 +1,15 @@
 use crate::{
+    VersionError,
     cli::{
         files::FilesCommand,
-        getset::{GetSet, GetSetBuild, GetSetRm},
+        getset::{GetSet, GetSetBuild, GetSetRm, SetVer},
+        package::PackageCommand,
     },
-    version::{run, VersionFile},
-    CommandRun, VersionResult,
+    version::Scope,
 };
 use clap::Subcommand;
 
-#[derive(Subcommand, Debug, Clone)]
+#[derive(Subcommand, Debug, Clone, PartialEq)]
 /// Specify the version number to change
 #[command(rename_all = "lower", arg_required_else_help(true))]
 pub enum VersionCommand {
@@ -28,61 +29,60 @@ pub enum VersionCommand {
     Build(GetSetBuild),
     /// Get the current version number as a full SemVer string
     Get,
+    /// Set the version number to a specific version
+    Set(SetVer),
     /// Get just the version number as a string with no revision or build identifiers
     Version,
     /// Get just the revision number as a string with no build identifiers
     Revision,
     /// Track and update the version number in a file
     File(FilesCommand),
+    /// Track and update the version number in a file
+    Package(PackageCommand),
 }
 
-impl CommandRun for VersionCommand {
-    fn run(&self, version: &mut VersionFile) -> VersionResult<()> {
-        match self {
-            VersionCommand::Major(getset) => {
-                version.key = Some(self.clone());
-                getset.run(version)
-            }
-            VersionCommand::Minor(getset) => {
-                version.key = Some(self.clone());
-                getset.run(version)
-            }
-            VersionCommand::Patch(getset) => {
-                version.key = Some(self.clone());
-                getset.run(version)
-            }
-            VersionCommand::Alpha(getset) => {
-                version.key = Some(self.clone());
-                getset.run(version)
-            }
-            VersionCommand::Beta(getset) => {
-                version.key = Some(self.clone());
-                getset.run(version)
-            }
-            VersionCommand::RC(getset) => {
-                version.key = Some(self.clone());
-                getset.run(version)
-            }
-            VersionCommand::Build(getset) => {
-                version.key = Some(self.clone());
-                getset.run(version)
-            }
-            VersionCommand::Get => {
-                version.key = Some(self.clone());
-                run(version)
-            }
-            VersionCommand::File(file_cmd) => {
-                version.key = Some(self.clone());
-                file_cmd.run(version)
-            }
-            VersionCommand::Version => {
-                version.key = Some(self.clone());
-                run(version)
-            }
-            VersionCommand::Revision => {
-                version.key = Some(self.clone());
-                run(version)
-            }
-        }
+impl TryFrom<&VersionCommand> for Scope {
+    type Error = VersionError;
+
+    fn try_from(cmd: &VersionCommand) -> Result<Self, VersionError> {
+        let scope = match cmd {
+            VersionCommand::Major(getset) => Scope::Major(getset.try_into()?),
+            VersionCommand::Minor(getset) => Scope::Minor(getset.try_into()?),
+            VersionCommand::Patch(getset) => Scope::Patch(getset.try_into()?),
+            VersionCommand::Alpha(getset) => Scope::Alpha(getset.try_into()?),
+            VersionCommand::Beta(getset) => Scope::Beta(getset.try_into()?),
+            VersionCommand::RC(getset) => Scope::RC(getset.try_into()?),
+            VersionCommand::Build(getset) => Scope::Build(getset.try_into()?),
+            VersionCommand::Get => Scope::Get,
+            VersionCommand::Version => Scope::Version,
+            VersionCommand::Revision => Scope::Revision,
+            VersionCommand::File(file_cmd) => Scope::File(file_cmd.try_into()?),
+            VersionCommand::Package(package_cmd) => package_cmd.try_into()?,
+            VersionCommand::Set(setver) => Scope::Set(setver.try_into()?),
+        };
+        Ok(scope)
+    }
+}
+
+impl TryFrom<VersionCommand> for Scope {
+    type Error = VersionError;
+
+    fn try_from(cmd: VersionCommand) -> Result<Self, VersionError> {
+        let scope = match cmd {
+            VersionCommand::Major(getset) => Scope::Major(getset.try_into()?),
+            VersionCommand::Minor(getset) => Scope::Minor(getset.try_into()?),
+            VersionCommand::Patch(getset) => Scope::Patch(getset.try_into()?),
+            VersionCommand::Alpha(getset) => Scope::Alpha(getset.try_into()?),
+            VersionCommand::Beta(getset) => Scope::Beta(getset.try_into()?),
+            VersionCommand::RC(getset) => Scope::RC(getset.try_into()?),
+            VersionCommand::Build(getset) => Scope::Build(getset.try_into()?),
+            VersionCommand::Get => Scope::Get,
+            VersionCommand::Version => Scope::Version,
+            VersionCommand::Revision => Scope::Revision,
+            VersionCommand::File(file_cmd) => Scope::File(file_cmd.try_into()?),
+            VersionCommand::Package(package_cmd) => package_cmd.try_into()?,
+            VersionCommand::Set(setver) => Scope::Set(setver.try_into()?),
+        };
+        Ok(scope)
     }
 }

@@ -1,55 +1,82 @@
-use crate::{
-    version::{run, Operator, SetTypes, VersionFile},
-    CommandRun, VersionError, VersionResult,
-};
-use clap::{builder::RangedU64ValueParser, Args, Subcommand};
+use crate::{VersionError, version::SetTypes};
+use clap::{Args, Subcommand, builder::RangedU64ValueParser};
 
-#[derive(Args, Debug, Clone)]
+#[derive(Args, Debug, Clone, PartialEq)]
 /// Set the version number
 pub struct Set {
-    #[arg(value_parser = RangedU64ValueParser::<u8>::new(), exclusive = true)]
+    #[arg(value_parser = RangedU64ValueParser::<u64>::new(), exclusive = true)]
     /// The value to set the version number to
-    pub value: Option<u8>,
+    pub value: Option<u64>,
     #[command(subcommand)]
     /// Increment or decrement the version number by 1
     pub command: Option<UpDown>,
 }
 
-impl CommandRun for Set {
-    fn run(&self, version: &mut VersionFile) -> VersionResult<()> {
-        if let Some(value) = &self.value {
-            version.operator = Some(Operator::Set(SetTypes::Number(*value)));
-            run(version)
-        } else if let Some(command) = &self.command {
-            command.run(version)
+impl TryFrom<&Set> for SetTypes {
+    type Error = VersionError;
+
+    fn try_from(set: &Set) -> Result<Self, VersionError> {
+        if let Some(value) = &set.value {
+            return Ok(SetTypes::Number(*value));
+        } else if let Some(command) = &set.command {
+            return Ok(command.try_into()?);
         } else {
             Err(VersionError::NoValue)
         }
     }
 }
 
-#[derive(Subcommand, Debug, Clone)]
+impl TryFrom<Set> for SetTypes {
+    type Error = VersionError;
+
+    fn try_from(set: Set) -> Result<Self, VersionError> {
+        if let Some(value) = &set.value {
+            return Ok(SetTypes::Number(*value));
+        } else if let Some(command) = &set.command {
+            return Ok(command.try_into()?);
+        } else {
+            Err(VersionError::NoValue)
+        }
+    }
+}
+
+#[derive(Subcommand, Debug, Clone, PartialEq)]
 #[command(rename_all = "lower", arg_required_else_help(true))]
 pub enum UpDown {
     #[command(name = "+")]
     /// Increment the version number by 1
-    Up,
+    Plus,
     #[command(name = "-")]
+    /// Decrement the version number by 1
+    Minus,
+    /// Increment the version number by 1
+    Up,
     /// Decrement the version number by 1
     Down,
 }
 
-impl CommandRun for UpDown {
-    fn run(&self, version: &mut VersionFile) -> VersionResult<()> {
-        match self {
-            UpDown::Up => {
-                version.operator = Some(Operator::Set(SetTypes::AddNumber));
-                run(version)
-            }
-            UpDown::Down => {
-                version.operator = Some(Operator::Set(SetTypes::SubNumber));
-                run(version)
-            }
+impl TryFrom<&UpDown> for SetTypes {
+    type Error = VersionError;
+
+    fn try_from(updown: &UpDown) -> Result<Self, VersionError> {
+        match updown {
+            UpDown::Up => Ok(SetTypes::AddNumber),
+            UpDown::Down => Ok(SetTypes::SubNumber),
+            UpDown::Plus => Ok(SetTypes::AddNumber),
+            UpDown::Minus => Ok(SetTypes::SubNumber),
+        }
+    }
+}
+
+impl TryFrom<UpDown> for SetTypes {
+    type Error = VersionError;
+
+    fn try_from(updown: UpDown) -> Result<Self, VersionError> {
+        match updown {
+            UpDown::Up => Ok(SetTypes::AddNumber),
+            UpDown::Down => Ok(SetTypes::SubNumber),
+            UpDown::Plus => Ok(SetTypes::AddNumber),
+            UpDown::Minus => Ok(SetTypes::SubNumber),
         }
     }
 }

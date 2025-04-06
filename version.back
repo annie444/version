@@ -1,0 +1,19 @@
+[version]
+version = "2.5.0"
+major = 2
+minor = 5
+patch = 0
+alpha = ""
+beta = ""
+rc = ""
+build = ""
+
+[version.package]
+
+[[files]]
+file = "version-manager/Cargo.toml"
+expr = "version = \"(.*)\""
+
+[[files]]
+file = "xtask/Cargo.toml"
+expr = "version = \"(.*)\""

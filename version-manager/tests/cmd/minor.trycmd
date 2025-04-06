@@ -2,40 +2,17 @@
 $ version get
 0.1.0
 
-```
-
-```
 $ version minor set +
-0.2.0
 
-```
-
-```
 $ version minor set 5
-0.5.0
 
-```
-
-```
 $ version minor set -
-0.4.0
 
-```
-
-```
 $ version minor get
 4
 
-```
-
-```
 $ version patch set +
-0.4.1
 
-```
-
-```
 $ version minor reset
-0.4.0
 
 ```

@@ -4,4 +4,8 @@ version = "3.0.0"
 file = "version-manager/Cargo.toml"
 expr = 'version = "(.*)"'
 
+[[files]]
+file = "xtask/Cargo.toml"
+expr = 'version = "(.*)"'
+
 [package]

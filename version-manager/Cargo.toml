@@ -25,8 +25,8 @@ regex.workspace = true
 semver = { version = "1.0.26", features = ["serde"] }
 serde.workspace = true
 serde_json = "1.0.140"
-thiserror = "2.0.12"
 toml.workspace = true
+thiserror.workspace = true
 
 [dev-dependencies]
 assert_fs = { version = "1.1.1", features = ["color", "color-auto"] }

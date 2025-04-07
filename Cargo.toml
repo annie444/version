@@ -9,3 +9,4 @@ clio = { version = "0.3", features = ["clap", "clap-parse"] }
 regex = "1"
 serde = { version = "1", features = ["derive"] }
 toml = "0.8"
+thiserror = "2"
